@@ -14,7 +14,7 @@ export function createStore({ file, initial = {} }) {
       const entries = await readdir(dir);
       const prefix = basename(file) + ".tmp";
       for (const name of entries) {
-        if (name.startsWith(prefix)) {
+        if (name === prefix || (name.startsWith(prefix) && /^\d+$/.test(name.slice(prefix.length)))) {
           await rm(join(dir, name), { force: true });
         }
       }

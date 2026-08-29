@@ -27,12 +27,15 @@ const MAX_BODY_BYTES = 1024 * 1024;
 class BodyTooLarge extends Error {}
 
 async function readBody(req) {
-  let raw = "";
+  const chunks = [];
+  let size = 0;
   for await (const chunk of req) {
-    raw += chunk;
-    if (Buffer.byteLength(raw) > MAX_BODY_BYTES) throw new BodyTooLarge();
+    chunks.push(chunk);
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) throw new BodyTooLarge();
   }
-  if (!raw) return null;
+  if (size === 0) return null;
+  const raw = Buffer.concat(chunks).toString("utf8");
   return JSON.parse(raw);
 }
 
@@ -146,6 +149,10 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, { "content-type": types[extname(filePath)] || "application/octet-stream" });
     res.end(body);
   } catch (err) {
+    if (err && err.code === "EACCES") {
+      if (!res.headersSent) return json(res, 404, { error: "not accessible" });
+      return res.end();
+    }
     if (!res.headersSent) {
       res.writeHead(404);
       res.end("Not found");

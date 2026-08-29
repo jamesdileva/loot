@@ -148,11 +148,26 @@ test("missing task returns 404", async () => {
 test("POST with oversized body returns 413", async () => {
   const res = await fetch(`${base()}/api/tasks`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      connection: "close",
+    },
     body: JSON.stringify({ title: "x".repeat(1200 * 1024) }),
   });
   assert.equal(res.status, 413);
   assert.deepEqual(await res.json(), { error: "body too large" });
+});
+
+test("POST round-trips a multi-byte UTF-8 title unchanged", async () => {
+  const title = "tâche à faire — 完成事宜 🎯";
+  const post = await fetch(`${base()}/api/tasks`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  assert.equal(post.status, 201);
+  const task = await post.json();
+  assert.equal(task.title, title);
 });
 
 test("static request that escapes public is rejected", async () => {
@@ -160,4 +175,17 @@ test("static request that escapes public is rejected", async () => {
   assert.equal(res.status, 404);
   const body = await res.text();
   assert.doesNotMatch(body, /loot@/);
+});
+
+test("encoded-separator traversal is rejected by the root guard", async () => {
+  const attempts = [
+    "/%2e%2e%2f/package.json",
+    "/%2e%2e%5cpackage.json",
+    "/..%2f/package.json",
+    "/..%5cpackage.json",
+  ];
+  for (const path of attempts) {
+    const res = await fetch(`${base()}${path}`);
+    assert.equal(res.status, 403, `${path} should be 403`);
+  }
 });

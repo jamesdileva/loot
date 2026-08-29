@@ -68,6 +68,31 @@ test("leftover temp files from an interrupted write are cleaned on startup", asy
   }
 });
 
+test("cleanup only removes real <basename>.tmp* temp files, not siblings", async () => {
+  const dir = await tempDir();
+  try {
+    const file = join(dir, "data.json");
+    await writeFile(file + ".tmp", "{", "utf8");
+    await writeFile(file + ".tmp1", "{", "utf8");
+    await writeFile(file + ".tmp12", "{", "utf8");
+    await writeFile(file + ".tmpx", "keep-me", "utf8");
+    await writeFile(file + ".tmpx1", "keep-me", "utf8");
+    await writeFile(join(dir, "notdata.json.tmp"), "keep-me", "utf8");
+
+    const store = createStore({ file });
+    await store.write({ ok: true });
+
+    const entries = await readdir(dir).then((es) => es.sort());
+    assert.deepEqual(
+      entries,
+      ["data.json", "data.json.tmpx", "data.json.tmpx1", "notdata.json.tmp"],
+      "numeric-suffixed temps removed, siblings preserved"
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("mutate serializes concurrent read-modify-write cycles without lost updates", async () => {
   const dir = await tempDir();
   try {
