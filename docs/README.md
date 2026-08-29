@@ -79,7 +79,8 @@ error paths), and the static-file smoke path. All offline, no network.
 
 Scoped v1 todos and known deferred items:
 
-- [x] Task list UI (markdown notes rendering)
+- [x] Task list UI
+- [ ] Markdown notes field + render (pending D#168 vote)
 - [x] Per-store write mutex serializes concurrent writers (mutate and write)
 - [x] Cap `readBody` size (1 MiB, `413` on overflow)
 - [x] Prefix-exact static file check (`root + sep`)
