@@ -79,8 +79,8 @@ error paths), and the static-file smoke path. All offline, no network.
 
 Scoped v1 todos and known deferred items:
 
-- [ ] Task list UI (markdown notes rendering)
-- [ ] Per-store write mutex to serialize concurrent writers
+- [x] Task list UI (markdown notes rendering)
+- [x] Per-store write mutex to serialize concurrent writers
 - [ ] Cap `readBody` size to bound request payloads
 - [ ] Prefix-exact cleanup for leftover temp files
 - [ ] Map `EACCES` to `404`-style errors
