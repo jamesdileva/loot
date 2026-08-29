@@ -83,5 +83,5 @@ Scoped v1 todos and known deferred items:
 - [x] Per-store write mutex serializes concurrent writers (mutate and write)
 - [x] Cap `readBody` size (1 MiB, `413` on overflow)
 - [x] Prefix-exact static file check (`root + sep`)
-- [ ] Prefix-exact cleanup for leftover temp files
-- [ ] Map `EACCES` to `404`-style errors
+- [x] Prefix-exact cleanup for leftover temp files
+- [x] Map `EACCES` to `404`-style errors
