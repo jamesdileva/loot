@@ -144,3 +144,20 @@ test("missing task returns 404", async () => {
   assert.equal(res.status, 404);
   assert.deepEqual(await res.json(), { error: "task not found" });
 });
+
+test("POST with oversized body returns 413", async () => {
+  const res = await fetch(`${base()}/api/tasks`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ title: "x".repeat(1200 * 1024) }),
+  });
+  assert.equal(res.status, 413);
+  assert.deepEqual(await res.json(), { error: "body too large" });
+});
+
+test("static request that escapes public is rejected", async () => {
+  const res = await fetch(`${base()}/%2e%2e/package.json`);
+  assert.equal(res.status, 404);
+  const body = await res.text();
+  assert.doesNotMatch(body, /loot@/);
+});

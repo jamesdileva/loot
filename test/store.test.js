@@ -88,3 +88,26 @@ test("mutate serializes concurrent read-modify-write cycles without lost updates
   }
 });
 
+test("store.write queues behind an in-flight mutate", async () => {
+  const dir = await tempDir();
+  try {
+    const file = join(dir, "data.json");
+    const store = createStore({ file, initial: { v: 0 } });
+
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    const mutateP = store.mutate(async (data) => {
+      await gate;
+      data.v = 1;
+    });
+    const writeP = store.write({ v: 2 });
+    release();
+    await Promise.all([mutateP, writeP]);
+
+    const second = createStore({ file });
+    assert.deepEqual(await second.read(), { v: 2 }, "write applied after the mutate finished");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+

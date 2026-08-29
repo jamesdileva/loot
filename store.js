@@ -34,7 +34,7 @@ export function createStore({ file, initial = {} }) {
     }
   }
 
-  async function write(data) {
+  async function writeImpl(data) {
     await cleanup();
     await mkdir(dir, { recursive: true });
     const raw = JSON.stringify(data, null, 2);
@@ -53,13 +53,13 @@ export function createStore({ file, initial = {} }) {
       return read();
     },
     async write(data) {
-      await write(data);
+      return withLock(() => writeImpl(data));
     },
     async mutate(updater) {
       return withLock(async () => {
         const data = await read();
         const result = await updater(data);
-        await write(data);
+        await writeImpl(data);
         return result;
       });
     },

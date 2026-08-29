@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createStore } from "./store.js";
 
@@ -22,9 +22,16 @@ function json(res, status, body) {
   return res.end(JSON.stringify(body));
 }
 
+const MAX_BODY_BYTES = 1024 * 1024;
+
+class BodyTooLarge extends Error {}
+
 async function readBody(req) {
   let raw = "";
-  for await (const chunk of req) raw += chunk;
+  for await (const chunk of req) {
+    raw += chunk;
+    if (Buffer.byteLength(raw) > MAX_BODY_BYTES) throw new BodyTooLarge();
+  }
   if (!raw) return null;
   return JSON.parse(raw);
 }
@@ -57,7 +64,8 @@ async function handleApi(req, res, url) {
       let body;
       try {
         body = await readBody(req);
-      } catch {
+      } catch (err) {
+        if (err instanceof BodyTooLarge) return json(res, 413, { error: "body too large" });
         return json(res, 400, { error: "invalid JSON" });
       }
       if (!body || typeof body.title !== "string" || !body.title.trim()) {
@@ -80,7 +88,8 @@ async function handleApi(req, res, url) {
       let body;
       try {
         body = await readBody(req);
-      } catch {
+      } catch (err) {
+        if (err instanceof BodyTooLarge) return json(res, 413, { error: "body too large" });
         return json(res, 400, { error: "invalid JSON" });
       }
       if (!body || typeof body.title !== "string" || !body.title.trim()) {
@@ -128,7 +137,7 @@ const server = createServer(async (req, res) => {
 
     const rel = urlPath === "/" ? "/index.html" : urlPath;
     const filePath = normalize(join(root, rel));
-    if (!filePath.startsWith(root)) {
+    if (!filePath.startsWith(root + sep)) {
       res.writeHead(403);
       res.end("Forbidden");
       return;
