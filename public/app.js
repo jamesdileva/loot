@@ -1,3 +1,5 @@
+import { renderMarkdown } from "/markdown.js";
+
 const list = document.getElementById("task-list");
 const empty = document.getElementById("empty");
 const form = document.getElementById("add-form");
@@ -26,26 +28,95 @@ function makeTaskElement(task) {
   const li = document.createElement("li");
   li.className = "task";
   li.dataset.id = task.id;
+  const state = { id: task.id, title: task.title, notes: task.notes || "" };
 
   const title = document.createElement("span");
   title.className = "title";
-  title.textContent = task.title;
+  title.textContent = state.title;
 
   const editBtn = document.createElement("button");
   editBtn.textContent = "Edit";
-  editBtn.addEventListener("click", () => startEdit(li, task.id, title));
+  editBtn.addEventListener("click", () => startEdit(li, state, title));
+
+  const notesBtn = document.createElement("button");
+  notesBtn.textContent = "Notes";
+  notesBtn.addEventListener("click", toggleNotes);
 
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "delete";
   deleteBtn.textContent = "Delete";
-  deleteBtn.addEventListener("click", () => removeTask(task.id));
+  deleteBtn.addEventListener("click", () => removeTask(state.id));
 
-  li.append(title, editBtn, deleteBtn);
+  const notesView = document.createElement("div");
+  notesView.className = "notes-view";
+
+  const editor = document.createElement("div");
+  editor.className = "notes-editor";
+  editor.hidden = true;
+  const textarea = document.createElement("textarea");
+  textarea.rows = 4;
+  textarea.placeholder = "Markdown notes…";
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "Save";
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "cancel";
+  cancelBtn.textContent = "Cancel";
+  actions.append(saveBtn, cancelBtn);
+  editor.append(textarea, actions);
+
+  async function persistNotes() {
+    const notes = textarea.value;
+    try {
+      const updated = await api(`/api/tasks/${state.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: state.title, notes }),
+      });
+      state.notes = updated.notes || "";
+      renderNotesView();
+      editor.hidden = true;
+      setStatus("Notes saved");
+    } catch (err) {
+      setStatus(err.message, true);
+    }
+  }
+
+  function renderNotesView() {
+    if (state.notes) {
+      notesView.innerHTML = renderMarkdown(state.notes);
+      notesView.hidden = false;
+    } else {
+      notesView.replaceChildren();
+      notesView.hidden = true;
+    }
+  }
+
+  function toggleNotes() {
+    if (!editor.hidden) {
+      editor.hidden = true;
+      return;
+    }
+    textarea.value = state.notes;
+    editor.hidden = false;
+    textarea.focus();
+  }
+
+  saveBtn.addEventListener("click", persistNotes);
+  cancelBtn.addEventListener("click", () => { editor.hidden = true; });
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") editor.hidden = true;
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) persistNotes();
+  });
+
+  renderNotesView();
+  li.append(title, editBtn, notesBtn, deleteBtn, notesView, editor);
   return li;
 }
 
-function startEdit(li, id, titleEl) {
-  const current = titleEl.textContent;
+function startEdit(li, state, titleEl) {
+  const current = state.title;
   titleEl.classList.add("editing");
   const inputEl = document.createElement("input");
   inputEl.value = current;
@@ -61,11 +132,12 @@ function startEdit(li, id, titleEl) {
       return;
     }
     try {
-      const task = await api(`/api/tasks/${id}`, {
+      const task = await api(`/api/tasks/${state.id}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title: value }),
+        body: JSON.stringify({ title: value, notes: state.notes }),
       });
+      state.title = task.title;
       titleEl.textContent = task.title;
       setStatus("Task updated");
     } catch (err) {

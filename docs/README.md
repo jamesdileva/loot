@@ -34,6 +34,7 @@ Configuration is via environment variables:
 |-------------------------|-------------------------------------------------------------|
 | `server.js`             | HTTP server: static files, API routing, JSON handling       |
 | `store.js`              | JSON file store with atomic temp+rename writes              |
+| `public/markdown.js`    | Zero-dep markdown renderer that HTML-escapes all output     |
 | `public/`               | Static front-end assets                                     |
 | `test/`                 | Node test-runner tests                                      |
 | `docs/`                 | This documentation                                          |
@@ -48,13 +49,15 @@ Base path: `/api/tasks`
 | Method   | Path             | Body          | Success          | Errors                          |
 |----------|------------------|---------------|------------------|---------------------------------|
 | `GET`    | `/api/tasks`     | —              | `200` list       | —                               |
-| `POST`   | `/api/tasks`     | `{"title":…}`  | `201` task       | `400` invalid JSON / missing title |
+| `POST`   | `/api/tasks`     | `{"title":…, "notes":…}` | `201` task | `400` invalid JSON / missing title |
 | `GET`    | `/api/tasks/:id` | —              | `200` task       | `404` not found                 |
-| `PUT`    | `/api/tasks/:id` | `{"title":…}`  | `200` task       | `400`, `404`                    |
+| `PUT`    | `/api/tasks/:id` | `{"title":…, "notes":…}` | `200` task | `400`, `404`            |
 | `DELETE` | `/api/tasks/:id` | —              | `200` removed    | `404`                           |
 
 Unsupported methods return `405`; unknown API routes return `404`. A task is
-`{"id": number, "title": string}`.
+`{"id": number, "title": string, "notes": string}`. `notes` holds raw markdown
+and defaults to `""`; the UI renders it through a hand-rolled, sanitizing
+markdown-to-HTML converter (no dependencies).
 
 ## Data storage
 
@@ -80,7 +83,7 @@ error paths), and the static-file smoke path. All offline, no network.
 Scoped v1 todos and known deferred items:
 
 - [x] Task list UI
-- [ ] Markdown notes field + render (pending D#168 vote)
+- [x] Markdown notes field + sanitized render (D#168)
 - [x] Per-store write mutex serializes concurrent writers (mutate and write)
 - [x] Cap `readBody` size (1 MiB, `413` on overflow)
 - [x] Prefix-exact static file check (`root + sep`)

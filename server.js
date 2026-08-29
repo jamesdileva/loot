@@ -43,9 +43,9 @@ async function nextId(data) {
   return data.tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
 }
 
-async function addTask(store, title) {
+async function addTask(store, title, notes) {
   return store.mutate(async (data) => {
-    const task = { id: await nextId(data), title };
+    const task = { id: await nextId(data), title, notes };
     data.tasks.push(task);
     return task;
   });
@@ -74,7 +74,7 @@ async function handleApi(req, res, url) {
       if (!body || typeof body.title !== "string" || !body.title.trim()) {
         return json(res, 400, { error: "title required" });
       }
-      const task = await addTask(store, body.title.trim());
+      const task = await addTask(store, body.title.trim(), typeof body.notes === "string" ? body.notes : "");
       return json(res, 201, task);
     }
     return json(res, 405, { error: "method not allowed" });
@@ -102,7 +102,9 @@ async function handleApi(req, res, url) {
       const task = await store.mutate(async (data) => {
         const idx = data.tasks.findIndex((t) => t.id === id);
         if (idx === -1) return null;
-        data.tasks[idx] = { id, title };
+        const prev = data.tasks[idx];
+        const notes = typeof body.notes === "string" ? body.notes : (prev.notes ?? "");
+        data.tasks[idx] = { id, title, notes };
         return data.tasks[idx];
       });
       if (!task) return json(res, 404, { error: "task not found" });
