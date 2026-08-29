@@ -5,6 +5,7 @@ export function createStore({ file, initial = {} }) {
   const dir = dirname(file);
   const tmpFile = file + ".tmp";
   let cleaned = false;
+  let lock = Promise.resolve();
 
   async function cleanup() {
     if (cleaned) return;
@@ -22,23 +23,45 @@ export function createStore({ file, initial = {} }) {
     }
   }
 
+  async function read() {
+    await cleanup();
+    try {
+      const raw = await readFile(file, "utf8");
+      return JSON.parse(raw);
+    } catch (err) {
+      if (err.code === "ENOENT") return initial;
+      throw err;
+    }
+  }
+
+  async function write(data) {
+    await cleanup();
+    await mkdir(dir, { recursive: true });
+    const raw = JSON.stringify(data, null, 2);
+    await writeFile(tmpFile, raw, "utf8");
+    await rename(tmpFile, file);
+  }
+
+  async function withLock(fn) {
+    const next = lock.then(fn, fn);
+    lock = next.catch(() => {});
+    return next;
+  }
+
   return {
     async read() {
-      await cleanup();
-      try {
-        const raw = await readFile(file, "utf8");
-        return JSON.parse(raw);
-      } catch (err) {
-        if (err.code === "ENOENT") return initial;
-        throw err;
-      }
+      return read();
     },
     async write(data) {
-      await cleanup();
-      await mkdir(dir, { recursive: true });
-      const raw = JSON.stringify(data, null, 2);
-      await writeFile(tmpFile, raw, "utf8");
-      await rename(tmpFile, file);
+      await write(data);
+    },
+    async mutate(updater) {
+      return withLock(async () => {
+        const data = await read();
+        const result = await updater(data);
+        await write(data);
+        return result;
+      });
     },
   };
 }

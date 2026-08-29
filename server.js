@@ -33,6 +33,14 @@ async function nextId(data) {
   return data.tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
 }
 
+async function addTask(store, title) {
+  return store.mutate(async (data) => {
+    const task = { id: await nextId(data), title };
+    data.tasks.push(task);
+    return task;
+  });
+}
+
 async function handleApi(req, res, url) {
   const match = url.pathname.match(/^\/api\/tasks(?:\/(\d+))?$/);
   if (!match) return false;
@@ -55,21 +63,19 @@ async function handleApi(req, res, url) {
       if (!body || typeof body.title !== "string" || !body.title.trim()) {
         return json(res, 400, { error: "title required" });
       }
-      const data = await store.read();
-      const task = { id: await nextId(data), title: body.title.trim() };
-      data.tasks.push(task);
-      await store.write(data);
+      const task = await addTask(store, body.title.trim());
       return json(res, 201, task);
     }
     return json(res, 405, { error: "method not allowed" });
   }
 
   if (id && Number.isInteger(id)) {
-    const data = await store.read();
-    const idx = data.tasks.findIndex((t) => t.id === id);
-    if (idx === -1) return json(res, 404, { error: "task not found" });
-
-    if (req.method === "GET") return json(res, 200, data.tasks[idx]);
+    if (req.method === "GET") {
+      const data = await store.read();
+      const task = data.tasks.find((t) => t.id === id);
+      if (!task) return json(res, 404, { error: "task not found" });
+      return json(res, 200, task);
+    }
     if (req.method === "PUT") {
       let body;
       try {
@@ -80,13 +86,24 @@ async function handleApi(req, res, url) {
       if (!body || typeof body.title !== "string" || !body.title.trim()) {
         return json(res, 400, { error: "title required" });
       }
-      data.tasks[idx] = { id, title: body.title.trim() };
-      await store.write(data);
-      return json(res, 200, data.tasks[idx]);
+      const title = body.title.trim();
+      const task = await store.mutate(async (data) => {
+        const idx = data.tasks.findIndex((t) => t.id === id);
+        if (idx === -1) return null;
+        data.tasks[idx] = { id, title };
+        return data.tasks[idx];
+      });
+      if (!task) return json(res, 404, { error: "task not found" });
+      return json(res, 200, task);
     }
     if (req.method === "DELETE") {
-      const [removed] = data.tasks.splice(idx, 1);
-      await store.write(data);
+      const removed = await store.mutate(async (data) => {
+        const idx = data.tasks.findIndex((t) => t.id === id);
+        if (idx === -1) return null;
+        const [task] = data.tasks.splice(idx, 1);
+        return task;
+      });
+      if (!removed) return json(res, 404, { error: "task not found" });
       return json(res, 200, removed);
     }
     return json(res, 405, { error: "method not allowed" });

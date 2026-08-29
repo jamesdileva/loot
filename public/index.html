@@ -3,10 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Loot</title>
+  <title>Loot — Task List</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <h1>Hello from Loot</h1>
-  <p>Local-first task list. Store, API, and notes arrive in later slices.</p>
+  <main class="app">
+    <h1>Loot</h1>
+    <p class="tagline">Local-first task list</p>
+
+    <form id="add-form" class="add-form" autocomplete="off">
+      <input id="title-input" type="text" placeholder="Add a task…" maxlength="200" required>
+      <button type="submit">Add</button>
+    </form>
+
+    <ul id="task-list" class="task-list"></ul>
+    <p id="empty" class="empty" hidden>No tasks yet. Add one above.</p>
+    <p id="status" class="status" role="status"></p>
+  </main>
+
+  <script src="/app.js"></script>
 </body>
 </html>

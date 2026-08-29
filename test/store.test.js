@@ -67,3 +67,24 @@ test("leftover temp files from an interrupted write are cleaned on startup", asy
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("mutate serializes concurrent read-modify-write cycles without lost updates", async () => {
+  const dir = await tempDir();
+  try {
+    const file = join(dir, "data.json");
+    const store = createStore({ file, initial: { count: 0 } });
+
+    const N = 20;
+    await Promise.all(
+      Array.from({ length: N }, () => store.mutate(async (data) => {
+        data.count += 1;
+      }))
+    );
+
+    const second = createStore({ file, initial: { count: 0 } });
+    assert.deepEqual(await second.read(), { count: N }, "all concurrent increments persisted");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
