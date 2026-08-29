@@ -28,7 +28,29 @@ function makeTaskElement(task) {
   const li = document.createElement("li");
   li.className = "task";
   li.dataset.id = task.id;
-  const state = { id: task.id, title: task.title, notes: task.notes || "" };
+  const state = { id: task.id, title: task.title, notes: task.notes || "", done: Boolean(task.done) };
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "done-box";
+  checkbox.checked = state.done;
+  checkbox.setAttribute("aria-label", "Toggle done");
+  checkbox.addEventListener("change", async () => {
+    const next = checkbox.checked;
+    try {
+      const updated = await api(`/api/tasks/${state.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: state.title, notes: state.notes, done: next }),
+      });
+      state.done = Boolean(updated.done);
+      li.classList.toggle("done", state.done);
+      setStatus(state.done ? "Task completed" : "Task reopened");
+    } catch (err) {
+      checkbox.checked = state.done;
+      setStatus(err.message, true);
+    }
+  });
 
   const title = document.createElement("span");
   title.className = "title";
@@ -111,7 +133,8 @@ function makeTaskElement(task) {
   });
 
   renderNotesView();
-  li.append(title, editBtn, notesBtn, deleteBtn, notesView, editor);
+  li.classList.toggle("done", state.done);
+  li.append(checkbox, title, editBtn, notesBtn, deleteBtn, notesView, editor);
   return li;
 }
 

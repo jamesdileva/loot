@@ -54,7 +54,7 @@ test("POST stores markdown notes and GET round-trips them unchanged", async () =
   const get = await fetch(`${base()}/api/tasks`);
   assert.equal(get.status, 200);
   const tasks = await get.json();
-  assert.deepEqual(tasks.find((t) => t.id === task.id), { id: task.id, title: "with notes", notes });
+  assert.deepEqual(tasks.find((t) => t.id === task.id), { id: task.id, title: "with notes", notes, done: false });
 });
 
 test("POST without notes defaults to an empty string", async () => {
@@ -82,7 +82,7 @@ test("PUT updates notes and preserves them across title-only edits", async () =>
     body: JSON.stringify({ title: "kept" }),
   });
   assert.equal(putTitle.status, 200);
-  assert.deepEqual(await putTitle.json(), { id, title: "kept", notes: "sticky notes" });
+  assert.deepEqual(await putTitle.json(), { id, title: "kept", notes: "sticky notes", done: false });
 
   const putNotes = await fetch(`${base()}/api/tasks/${id}`, {
     method: "PUT",
@@ -90,7 +90,7 @@ test("PUT updates notes and preserves them across title-only edits", async () =>
     body: JSON.stringify({ title: "kept", notes: "**now bold**" }),
   });
   assert.equal(putNotes.status, 200);
-  assert.deepEqual(await putNotes.json(), { id, title: "kept", notes: "**now bold**" });
+  assert.deepEqual(await putNotes.json(), { id, title: "kept", notes: "**now bold**", done: false });
 });
 
 test("hostile markup round-trips as text and stays out of the rendered boundary", async () => {

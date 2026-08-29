@@ -39,13 +39,22 @@ async function readBody(req) {
   return JSON.parse(raw);
 }
 
+function normalizeTask(t) {
+  return {
+    id: t.id,
+    title: t.title,
+    notes: typeof t.notes === "string" ? t.notes : "",
+    done: typeof t.done === "boolean" ? t.done : false,
+  };
+}
+
 async function nextId(data) {
   return data.tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
 }
 
 async function addTask(store, title, notes) {
   return store.mutate(async (data) => {
-    const task = { id: await nextId(data), title, notes };
+    const task = { id: await nextId(data), title, notes, done: false };
     data.tasks.push(task);
     return task;
   });
@@ -61,7 +70,7 @@ async function handleApi(req, res, url) {
   if (url.pathname === "/api/tasks") {
     if (req.method === "GET") {
       const data = await store.read();
-      return json(res, 200, data.tasks);
+      return json(res, 200, data.tasks.map(normalizeTask));
     }
     if (req.method === "POST") {
       let body;
@@ -85,7 +94,7 @@ async function handleApi(req, res, url) {
       const data = await store.read();
       const task = data.tasks.find((t) => t.id === id);
       if (!task) return json(res, 404, { error: "task not found" });
-      return json(res, 200, task);
+      return json(res, 200, normalizeTask(task));
     }
     if (req.method === "PUT") {
       let body;
@@ -104,7 +113,8 @@ async function handleApi(req, res, url) {
         if (idx === -1) return null;
         const prev = data.tasks[idx];
         const notes = typeof body.notes === "string" ? body.notes : (prev.notes ?? "");
-        data.tasks[idx] = { id, title, notes };
+        const done = typeof body.done === "boolean" ? body.done : (prev.done ?? false);
+        data.tasks[idx] = { id, title, notes, done };
         return data.tasks[idx];
       });
       if (!task) return json(res, 404, { error: "task not found" });
@@ -118,7 +128,7 @@ async function handleApi(req, res, url) {
         return task;
       });
       if (!removed) return json(res, 404, { error: "task not found" });
-      return json(res, 200, removed);
+      return json(res, 200, normalizeTask(removed));
     }
     return json(res, 405, { error: "method not allowed" });
   }

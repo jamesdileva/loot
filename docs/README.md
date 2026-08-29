@@ -51,13 +51,16 @@ Base path: `/api/tasks`
 | `GET`    | `/api/tasks`     | —              | `200` list       | —                               |
 | `POST`   | `/api/tasks`     | `{"title":…, "notes":…}` | `201` task | `400` invalid JSON / missing title |
 | `GET`    | `/api/tasks/:id` | —              | `200` task       | `404` not found                 |
-| `PUT`    | `/api/tasks/:id` | `{"title":…, "notes":…}` | `200` task | `400`, `404`            |
+| `PUT`    | `/api/tasks/:id` | `{"title":…, "notes":…, "done": bool}` | `200` task | `400`, `404`            |
 | `DELETE` | `/api/tasks/:id` | —              | `200` removed    | `404`                           |
 
 Unsupported methods return `405`; unknown API routes return `404`. A task is
-`{"id": number, "title": string, "notes": string}`. `notes` holds raw markdown
-and defaults to `""`; the UI renders it through a hand-rolled, sanitizing
-markdown-to-HTML converter (no dependencies).
+`{"id": number, "title": string, "notes": string, "done": boolean}`. `notes`
+holds raw markdown and defaults to `""`; the UI renders it through a
+hand-rolled, sanitizing markdown-to-HTML converter (no dependencies). `done`
+defaults to `false` on create; `PUT` accepts an optional boolean `done` and
+preserves it when omitted. Tasks stored without `done` (from older versions)
+are served normalized to `false`.
 
 ## Data storage
 
@@ -83,6 +86,7 @@ error paths), and the static-file smoke path. All offline, no network.
 Scoped v1 todos and known deferred items:
 
 - [x] Task list UI
+- [x] Task done flag: checkbox + strikethrough (D#323)
 - [x] Markdown notes field + sanitized render (D#168)
 - [x] Per-store write mutex serializes concurrent writers (mutate and write)
 - [x] Cap `readBody` size (1 MiB, `413` on overflow)

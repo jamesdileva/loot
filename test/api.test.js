@@ -63,7 +63,7 @@ test("POST and GET /api/tasks round-trip a task", async () => {
 
   const get = await fetch(`${base()}/api/tasks`);
   assert.equal(get.status, 200);
-  assert.deepEqual(await get.json(), [{ id: task.id, title: "demo", notes: "" }]);
+  assert.deepEqual(await get.json(), [{ id: task.id, title: "demo", notes: "", done: false }]);
 });
 
 test("GET /api/tasks/:id returns a single task", async () => {
@@ -75,7 +75,7 @@ test("GET /api/tasks/:id returns a single task", async () => {
   const { id } = await post.json();
   const get = await fetch(`${base()}/api/tasks/${id}`);
   assert.equal(get.status, 200);
-  assert.deepEqual(await get.json(), { id, title: "single", notes: "" });
+  assert.deepEqual(await get.json(), { id, title: "single", notes: "", done: false });
 });
 
 test("PUT /api/tasks/:id replaces a task title", async () => {
@@ -91,7 +91,7 @@ test("PUT /api/tasks/:id replaces a task title", async () => {
     body: JSON.stringify({ title: "new" }),
   });
   assert.equal(put.status, 200);
-  assert.deepEqual(await put.json(), { id, title: "new", notes: "" });
+  assert.deepEqual(await put.json(), { id, title: "new", notes: "", done: false });
 });
 
 test("DELETE /api/tasks/:id removes a task", async () => {
