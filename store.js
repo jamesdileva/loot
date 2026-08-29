@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, rm, readdir } from "node:fs/promises";
+import { readFile, writeFile, rename, rm, readdir, mkdir } from "node:fs/promises";
 import { dirname, basename, join } from "node:path";
 
 export function createStore({ file, initial = {} }) {
@@ -35,6 +35,7 @@ export function createStore({ file, initial = {} }) {
     },
     async write(data) {
       await cleanup();
+      await mkdir(dir, { recursive: true });
       const raw = JSON.stringify(data, null, 2);
       await writeFile(tmpFile, raw, "utf8");
       await rename(tmpFile, file);

@@ -9,6 +9,20 @@ async function tempDir() {
   return mkdtemp(join(tmpdir(), "loot-store-"));
 }
 
+test("write creates a missing parent directory", async () => {
+  const dir = await tempDir();
+  try {
+    const file = join(dir, "nested", "deep", "data.json");
+    const store = createStore({ file });
+    await store.write({ tasks: [{ id: 1, title: "fresh" }] });
+
+    const second = createStore({ file });
+    assert.deepEqual(await second.read(), { tasks: [{ id: 1, title: "fresh" }] });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("read returns empty default state when the store file does not exist", async () => {
   const dir = await tempDir();
   try {
