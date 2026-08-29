@@ -1,0 +1,11 @@
+{
+  "name": "loot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first task list with markdown notes (Loot v1)",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  }
+}
