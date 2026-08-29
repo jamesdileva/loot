@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, readFile, readdir } from "node:fs/promises";
+import { mkdtemp, rm, readFile, writeFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createStore } from "../store.js";
@@ -38,15 +38,12 @@ test("leftover temp files from an interrupted write are cleaned on startup", asy
   try {
     const file = join(dir, "data.json");
     const temp = file + ".tmp";
-    await Promise.resolve();
+    await writeFile(temp, '{"partial":true,"r"', "utf8");
 
     const store = createStore({ file });
-    try {
-      await readFile(temp);
-      assert.fail("temp file should not exist before write");
-    } catch (e) {
-      assert.ok(e.code === "ENOENT", "temp file absent before any write");
-    }
+    assert.deepEqual(await store.read(), {}, "lazy cleanup runs before first read");
+
+    await assert.rejects(readFile(temp), { code: "ENOENT" }, "leftover temp removed");
 
     await store.write({ ok: true });
 
