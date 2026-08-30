@@ -4,6 +4,17 @@
 
 ### Features
 
+- Syntax guard (#176): the test suite now runs `node --check` over every JS
+  file in the repo and fails fast on any syntax error.
+
+### Fixed
+
+- `store.write`/`store.mutate` refuse to persist a corrupt store (a root that
+  is not a plain JSON object) with a clear error instead of silently
+  overwriting a previously good store file.
+
+### Features
+
 - Status filter (All/Open/Done) and due views (Overdue / Has due date, sorted
   soonest-first) added to the toolbar, from a pure client module
   (`public/filter.js` → `applyView` / `isOverdue`). Text, status, and due

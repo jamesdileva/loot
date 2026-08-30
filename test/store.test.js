@@ -126,7 +126,39 @@ test("mutate serializes concurrent read-modify-write cycles without lost updates
   }
 });
 
-test("store.write queues behind an in-flight mutate", async () => {
+test("write refuses a non-object store root, not silently overwriting the file", async () => {
+  const dir = await tempDir();
+  try {
+    const file = join(dir, "data.json");
+    const store = createStore({ file });
+    await store.write({ tasks: [{ id: 1, title: "good" }] });
+
+    await assert.rejects(store.write("corrupt"), {
+      message: /refusing to write corrupt store: store root must be a plain JSON object/,
+    });
+    assert.deepEqual(await store.read(), { tasks: [{ id: 1, title: "good" }] }, "prior data preserved");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("write refuses a root array, not silently overwriting the file", async () => {
+  const dir = await tempDir();
+  try {
+    const file = join(dir, "data.json");
+    const store = createStore({ file });
+    await store.write({ tasks: [{ id: 1, title: "good" }] });
+
+    await assert.rejects(store.write([1, 2, 3]), {
+      message: /store root must be a plain JSON object/,
+    });
+    assert.deepEqual(await store.read(), { tasks: [{ id: 1, title: "good" }] }, "prior data preserved");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("write queues behind an in-flight mutate", async () => {
   const dir = await tempDir();
   try {
     const file = join(dir, "data.json");

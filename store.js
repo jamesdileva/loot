@@ -1,6 +1,16 @@
 import { readFile, writeFile, rename, rm, readdir, mkdir } from "node:fs/promises";
 import { dirname, basename, join } from "node:path";
 
+// A store must be a plain object that round-trips as valid JSON. Anything else
+// (strings, numbers, arrays, booleans, undefined, functions) would persist to a
+// corrupt store: refuse it rather than silently overwrite a previously good one.
+function validateStoreData(data) {
+  if (data === null || typeof data !== "object" || Array.isArray(data) || typeof data.toJSON === "function") {
+    return "store root must be a plain JSON object";
+  }
+  return null;
+}
+
 export function createStore({ file, initial = {} }) {
   const dir = dirname(file);
   const tmpFile = file + ".tmp";
@@ -35,6 +45,10 @@ export function createStore({ file, initial = {} }) {
   }
 
   async function writeImpl(data) {
+    const invalid = validateStoreData(data);
+    if (invalid) {
+      throw new Error(`refusing to write corrupt store: ${invalid}`);
+    }
     await cleanup();
     await mkdir(dir, { recursive: true });
     const raw = JSON.stringify(data, null, 2);
