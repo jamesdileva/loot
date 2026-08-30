@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased (v1.2)
+
+### Features
+
+- Search/filter: live task filtering by title and notes from a pure module
+  (`public/search.js` → `filterTasks`). Empty query keeps the full list intact.
+
 ## Unreleased (v1.1)
 
 ### Fixed

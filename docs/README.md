@@ -36,6 +36,7 @@ Configuration is via environment variables:
 | `store.js`              | JSON file store with atomic temp+rename writes              |
 | `public/markdown.js`    | Zero-dep markdown renderer that HTML-escapes all output     |
 | `public/drag.js`        | Pure drag math: 5px start threshold, `shouldStartDrag(dx, dy)` |
+| `public/search.js`      | Pure filter: `filterTasks(tasks, query)` over title+notes  |
 | `public/`               | Static front-end assets                                     |
 | `test/`                 | Node test-runner tests                                      |
 | `docs/`                 | This documentation                                          |
@@ -114,3 +115,5 @@ Scoped v1 todos and known deferred items:
 - [x] Prefix-exact static file check (`root + sep`)
 - [x] Prefix-exact cleanup for leftover temp files
 - [x] Map `EACCES` to `404`-style errors
+- [x] Search/filter: live task filtering by title and notes from a pure module (D#600)
+- [ ] JSON export/import (D#600, deferred)

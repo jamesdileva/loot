@@ -1,14 +1,18 @@
 import { renderMarkdown } from "/markdown.js";
 import { shouldStartDrag } from "/drag.js";
+import { filterTasks } from "/search.js";
 
 const list = document.getElementById("task-list");
 const empty = document.getElementById("empty");
+const noFilterMatch = document.getElementById("no-filter-match");
 const form = document.getElementById("add-form");
 const input = document.getElementById("title-input");
+const searchInput = document.getElementById("search-input");
 const statusEl = document.getElementById("status");
 
 let dragging = null;
 let reordering = false;
+let currentQuery = "";
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message || "";
@@ -327,12 +331,18 @@ function startEdit(li, state, titleEl) {
 async function render() {
   list.replaceChildren();
   const tasks = await api("/api/tasks");
+  const visible = filterTasks(tasks, currentQuery);
+  empty.hidden = true;
+  noFilterMatch.hidden = true;
   if (tasks.length === 0) {
     empty.hidden = false;
     return;
   }
-  empty.hidden = true;
-  for (const [i, task] of tasks.entries()) list.append(makeTaskElement(task, i, tasks.length));
+  if (visible.length === 0) {
+    noFilterMatch.hidden = false;
+    return;
+  }
+  for (const [i, task] of visible.entries()) list.append(makeTaskElement(task, i, visible.length));
 }
 
 async function addTask(title) {
@@ -372,6 +382,11 @@ form.addEventListener("submit", async (e) => {
     input.disabled = false;
     input.focus();
   }
+});
+
+searchInput.addEventListener("input", () => {
+  currentQuery = searchInput.value;
+  render().catch((err) => setStatus(err.message, true));
 });
 
 render().catch((err) => setStatus(err.message, true));
