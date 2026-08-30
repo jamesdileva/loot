@@ -1,8 +1,9 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
-import { extname, join, normalize, sep } from "node:path";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createStore } from "./store.js";
+import { exportStore, parseImport } from "./transfer.js";
 
 const root = fileURLToPath(new URL("./public", import.meta.url));
 const port = Number(process.env.PORT || 3000);
@@ -60,6 +61,15 @@ async function nextId(data) {
   return data.tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
 }
 
+// Atomically snapshot the current store (temp + rename) before an import overwrites it.
+async function backupStore(file, data) {
+  const bak = file + ".pre-import";
+  await mkdir(dirname(file), { recursive: true });
+  const tmp = bak + ".tmp";
+  await writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
+  await rename(tmp, bak);
+}
+
 async function addTask(store, title, notes, due) {
   return store.mutate(async (data) => {
     const task = { id: await nextId(data), title, notes, done: false, due: validDue(due) };
@@ -69,6 +79,39 @@ async function addTask(store, title, notes, due) {
 }
 
 async function handleApi(req, res, url) {
+  if (url.pathname === "/api/export") {
+    if (req.method !== "GET") return json(res, 405, { error: "method not allowed" });
+    let data;
+    try {
+      data = await store.read();
+    } catch {
+      return json(res, 409, { error: "store corrupt" });
+    }
+    return json(res, 200, exportStore(data));
+  }
+
+  if (url.pathname === "/api/import") {
+    if (req.method !== "POST") return json(res, 405, { error: "method not allowed" });
+    let body;
+    try {
+      body = await readBody(req);
+    } catch (err) {
+      if (err instanceof BodyTooLarge) return json(res, 413, { error: "body too large" });
+      return json(res, 400, { error: "invalid JSON" });
+    }
+    const parsed = parseImport(body);
+    if (!parsed.ok) return json(res, 400, { error: parsed.error });
+    let current;
+    try {
+      current = await store.read();
+    } catch {
+      return json(res, 409, { error: "store corrupt; refusing to overwrite" });
+    }
+    await backupStore(dataFile, current);
+    await store.write(parsed.data);
+    return json(res, 200, { count: parsed.data.tasks.length });
+  }
+
   const match = url.pathname.match(/^\/api\/tasks(?:\/(\d+))?(?:\/(order))?$/);
   if (!match) return false;
 

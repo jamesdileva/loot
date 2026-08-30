@@ -37,6 +37,7 @@ Configuration is via environment variables:
 | `public/markdown.js`    | Zero-dep markdown renderer that HTML-escapes all output     |
 | `public/drag.js`        | Pure drag math: 5px start threshold, `shouldStartDrag(dx, dy)` |
 | `public/search.js`      | Pure filter: `filterTasks(tasks, query)` over title+notes  |
+| `transfer.js`           | Pure export/import: `exportStore(data)`, `parseImport(value)` |
 | `public/`               | Static front-end assets                                     |
 | `test/`                 | Node test-runner tests                                      |
 | `docs/`                 | This documentation                                          |
@@ -55,6 +56,8 @@ Base path: `/api/tasks`
 | `GET`    | `/api/tasks/:id` | —              | `200` task       | `404` not found                 |
 | `PUT`    | `/api/tasks/:id` | `{"title":…, "notes":…, "done": bool, "due": "YYYY-MM-DD"\|null}` | `200` task | `400`, `404`            |
 | `DELETE` | `/api/tasks/:id` | —              | `200` removed    | `404`                           |
+| `GET`    | `/api/export`    | —              | `200` store JSON | `409` corrupt store             |
+| `POST`   | `/api/import`    | store JSON     | `200` `{"count": n}` | `400` malformed, `409` corrupt store, `413` too large |
 
 Unsupported methods return `405`; unknown API routes return `404`. A task is
 `{"id": number, "title": string, "notes": string, "done": boolean, "due": string|null}`. `notes`
@@ -87,6 +90,26 @@ npm test
 Runs the `node --test` suite covering the store, the HTTP API (including
 error paths), and the static-file smoke path. All offline, no network.
 
+## Export and import
+
+`GET /api/export` returns the whole store as `{"tasks": [...]}` in **persisted
+on-disk save order** (the same array order used by reorder; not a sorted view).
+A re-import of a fresh export restores the identical store.
+
+`POST /api/import` replaces the store wholesale, and a backup of the prior
+store is written atomically to `DATA_FILE.pre-import` first. Input is validated
+strictly by `transfer.js` before anything is written: the body must be an
+object with a `tasks` array, each task needs a positive integer `id` and a
+non-empty `title` string, `notes`/`done`/`due` must be the right types when
+present (defaulting when absent), `due` must be a valid calendar date, and ids
+must be unique. Malformed input is rejected with `400` and never touches the
+store. If the current on-disk store is corrupt, import refuses with `409`
+instead of clobbering it; a missing (fresh) store is overwritten freely.
+
+The UI exposes Export (downloads `loot-backup-YYYY-MM-DD.json`) and Import
+(file picker) buttons; Import re-renders from the server after a successful
+replacement.
+
 ## Manual verification
 
 The pointer drag-and-drop wiring (`onPointerMove` / `elementFromPoint`) is not
@@ -116,4 +139,4 @@ Scoped v1 todos and known deferred items:
 - [x] Prefix-exact cleanup for leftover temp files
 - [x] Map `EACCES` to `404`-style errors
 - [x] Search/filter: live task filtering by title and notes from a pure module (D#600)
-- [ ] JSON export/import (D#600, deferred)
+- [x] JSON export/import (D#600): strict validation, atomic `.pre-import` backup, UI buttons

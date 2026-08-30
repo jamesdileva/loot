@@ -33,6 +33,19 @@ test("read returns empty default state when the store file does not exist", asyn
   }
 });
 
+test("missing-file default is a fresh copy, never polluted by prior mutations", async () => {
+  const dir = await tempDir();
+  try {
+    const file = join(dir, "data.json");
+    const store = createStore({ file, initial: { tasks: [] } });
+    await store.mutate((data) => { data.tasks.push({ id: 1, title: "ephemeral" }); });
+    await rm(file, { force: true });
+    assert.deepEqual(await store.read(), { tasks: [] }, "ENOENT read returns clean initial");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("atomic write persists data readable by a fresh store instance", async () => {
   const dir = await tempDir();
   try {

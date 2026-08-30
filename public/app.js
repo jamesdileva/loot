@@ -389,4 +389,42 @@ searchInput.addEventListener("input", () => {
   render().catch((err) => setStatus(err.message, true));
 });
 
+const exportBtn = document.getElementById("export-btn");
+const importBtn = document.getElementById("import-btn");
+const importFile = document.getElementById("import-file");
+
+exportBtn.addEventListener("click", async () => {
+  try {
+    const data = await api("/api/export");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    a.download = `loot-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setStatus("Exported");
+  } catch (err) {
+    setStatus(err.message, true);
+  }
+});
+
+importBtn.addEventListener("click", () => importFile.click());
+
+importFile.addEventListener("change", async () => {
+  const file = importFile.files[0];
+  importFile.value = "";
+  if (!file) return;
+  try {
+    const result = await api("/api/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: await file.text(),
+    });
+    await render();
+    setStatus(`Imported ${result.count} task${result.count === 1 ? "" : "s"}`);
+  } catch (err) {
+    setStatus(err.message, true);
+  }
+});
+
 render().catch((err) => setStatus(err.message, true));

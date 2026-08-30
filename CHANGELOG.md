@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased (v1.3)
+
+### Features
+
+- JSON export/import (D#600): `GET /api/export` returns the store in persisted
+  order; `POST /api/import` replaces it, writing an atomic `.pre-import` backup
+  first. Strict validation via a pure module (`transfer.js` → `exportStore` /
+  `parseImport`) rejects malformed input with `400` and refuses to overwrite a
+  corrupt store with `409`. Export/Import buttons added to the UI.
+
+### Fixed
+
+- `store.read()` no longer returns the shared default `<initial>` object on a
+  missing file: `mutate` was mutating it in place, so a later missing-file read
+  (e.g. importing into a fresh store) could surface stale tasks. The default
+  is now a fresh copy per read.
+
 ## Unreleased (v1.2)
 
 ### Features

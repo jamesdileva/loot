@@ -29,7 +29,7 @@ export function createStore({ file, initial = {} }) {
       const raw = await readFile(file, "utf8");
       return JSON.parse(raw);
     } catch (err) {
-      if (err.code === "ENOENT") return initial;
+      if (err.code === "ENOENT") return structuredClone(initial);
       throw err;
     }
   }
