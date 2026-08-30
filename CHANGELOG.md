@@ -9,6 +9,13 @@
   `due: null`/`""` to no date and preserves the stored date when `due` is
   omitted.
 
+### Debts closed
+
+- Browser-level drag-reorder E2E closed as manual verification (D#590, option
+  A): the drag math is covered by pure unit tests; the remaining DOM wiring
+  (`onPointerMove` / `elementFromPoint`) is verified by hand. See
+  `docs/README.md` → Manual verification. No new dependency added.
+
 ## v1.0.0 (2026-08-29)
 
 Local-first task list with markdown notes. Runs entirely on the machine of the

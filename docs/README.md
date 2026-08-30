@@ -86,6 +86,18 @@ npm test
 Runs the `node --test` suite covering the store, the HTTP API (including
 error paths), and the static-file smoke path. All offline, no network.
 
+## Manual verification
+
+The pointer drag-and-drop wiring (`onPointerMove` / `elementFromPoint`) is not
+covered by the automated suite; the drag math is unit-tested and the DOM
+wiring is verified by hand once per release (D#590, closed as manual):
+
+1. `npm start` and open http://127.0.0.1:3000.
+2. Add at least three tasks, then press one and drag it past the 5px start
+   threshold over another task and release — the card should move to that spot.
+3. Reload the page — the new order must persist.
+4. Tap a card without moving beyond the threshold — no drag should start.
+
 ## Roadmap
 
 Scoped v1 todos and known deferred items:
@@ -96,6 +108,7 @@ Scoped v1 todos and known deferred items:
 - [x] Task reorder: up/down buttons, array-order persistence, `PUT /api/tasks/:id/order` (D#366)
 - [x] Task due dates: optional `YYYY-MM-DD` per task, overdue highlight in the UI (D#385)
 - [x] Drag-and-drop reorder via pointer events with a 5px start threshold and coarse-pointer jitter guard (D#412)
+- [x] Browser drag-reorder E2E closed as manual verification (D#590)
 - [x] Per-store write mutex serializes concurrent writers (mutate and write)
 - [x] Cap `readBody` size (1 MiB, `413` on overflow)
 - [x] Prefix-exact static file check (`root + sep`)
