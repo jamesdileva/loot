@@ -35,6 +35,7 @@ Configuration is via environment variables:
 | `server.js`             | HTTP server: static files, API routing, JSON handling       |
 | `store.js`              | JSON file store with atomic temp+rename writes              |
 | `public/markdown.js`    | Zero-dep markdown renderer that HTML-escapes all output     |
+| `public/drag.js`        | Pure drag math: 5px start threshold, `shouldStartDrag(dx, dy)` |
 | `public/`               | Static front-end assets                                     |
 | `test/`                 | Node test-runner tests                                      |
 | `docs/`                 | This documentation                                          |
@@ -93,6 +94,7 @@ Scoped v1 todos and known deferred items:
 - [x] Markdown notes field + sanitized render (D#168)
 - [x] Task reorder: up/down buttons, array-order persistence, `PUT /api/tasks/:id/order` (D#366)
 - [x] Task due dates: optional `YYYY-MM-DD` per task, overdue highlight in the UI (D#385)
+- [x] Drag-and-drop reorder via pointer events with a 5px start threshold and coarse-pointer jitter guard (D#412)
 - [x] Per-store write mutex serializes concurrent writers (mutate and write)
 - [x] Cap `readBody` size (1 MiB, `413` on overflow)
 - [x] Prefix-exact static file check (`root + sep`)

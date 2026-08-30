@@ -1,4 +1,5 @@
 import { renderMarkdown } from "/markdown.js";
+import { shouldStartDrag } from "/drag.js";
 
 const list = document.getElementById("task-list");
 const empty = document.getElementById("empty");
@@ -226,8 +227,7 @@ function onPointerDown(e, li, id) {
   if (reordering || dragging || dragIgnoredTarget(e.target)) return;
   if (taskIndex(li) === -1) return;
   e.preventDefault();
-  dragging = { id, pointerId: e.pointerId, startIndex: taskIndex(li), li };
-  li.classList.add("dragging");
+  dragging = { id, pointerId: e.pointerId, startIndex: taskIndex(li), startX: e.clientX, startY: e.clientY, li, active: false };
   if (li.setPointerCapture) li.setPointerCapture(e.pointerId);
   li.addEventListener("pointermove", onPointerMove);
   li.addEventListener("pointerup", onPointerUp);
@@ -237,6 +237,11 @@ function onPointerDown(e, li, id) {
 function onPointerMove(e) {
   if (!dragging || e.pointerId !== dragging.pointerId) return;
   e.preventDefault();
+  if (!dragging.active) {
+    if (!shouldStartDrag(e.clientX - dragging.startX, e.clientY - dragging.startY)) return;
+    dragging.active = true;
+    dragging.li.classList.add("dragging");
+  }
   const li = dragging.li;
   const over = document.elementFromPoint(e.clientX, e.clientY);
   const other = over && over.closest ? over.closest(".task") : null;
@@ -249,13 +254,14 @@ function onPointerMove(e) {
 
 async function onPointerUp(e) {
   if (!dragging || e.pointerId !== dragging.pointerId) return;
-  const { id, li } = dragging;
+  const { id, li, active } = dragging;
   const startIndex = dragging.startIndex;
   dragging = null;
   li.classList.remove("dragging");
   li.removeEventListener("pointermove", onPointerMove);
   li.removeEventListener("pointerup", onPointerUp);
   li.removeEventListener("pointercancel", onPointerCancel);
+  if (!active) return;
   const newIndex = taskIndex(li);
   if (newIndex === startIndex || reordering) return;
   reordering = true;
