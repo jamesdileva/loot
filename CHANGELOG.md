@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (v1.1)
+
+### Fixed
+
+- `PUT` with an invalid `due` value now returns `400` instead of silently
+  keeping the previously stored date (v1.1 debt #141). `PUT` still normalizes
+  `due: null`/`""` to no date and preserves the stored date when `due` is
+  omitted.
+
 ## v1.0.0 (2026-08-29)
 
 Local-first task list with markdown notes. Runs entirely on the machine of the

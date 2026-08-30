@@ -140,6 +140,9 @@ async function handleApi(req, res, url) {
         return json(res, 400, { error: "title required" });
       }
       const title = body.title.trim();
+      if (body.due !== undefined && body.due !== null && body.due !== "" && validDue(body.due) === null) {
+        return json(res, 400, { error: "invalid due date" });
+      }
       const task = await store.mutate(async (data) => {
         const idx = data.tasks.findIndex((t) => t.id === id);
         if (idx === -1) return null;
@@ -148,7 +151,7 @@ async function handleApi(req, res, url) {
         const done = typeof body.done === "boolean" ? body.done : (prev.done ?? false);
         const due = body.due === undefined
           ? (prev.due ?? null)
-          : (body.due === null || body.due === "" ? null : (validDue(body.due) ?? (prev.due ?? null)));
+          : (body.due === null || body.due === "" ? null : validDue(body.due));
         data.tasks[idx] = { id, title, notes, done, due };
         return data.tasks[idx];
       });

@@ -97,24 +97,27 @@ test("PUT title-only preserves due", async () => {
   assert.deepEqual(await put.json(), { id: task.id, title: "kept", notes: "", done: false, due: "2026-11-01" });
 });
 
-test("PUT invalid due is coerced to the stored value", async () => {
+test("PUT invalid due returns 400 and leaves due untouched", async () => {
   const bare = await createTask("bare");
   const stringy = await fetch(`${base()}/api/tasks/${bare.id}`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ title: "bare", due: "oops" }),
   });
-  assert.equal(stringy.status, 200);
-  assert.equal((await stringy.json()).due, null);
+  assert.equal(stringy.status, 400);
+  assert.deepEqual(await stringy.json(), { error: "invalid due date" });
 
   const dated = await createTask("dated", { due: "2026-12-01" });
-  const broken = await fetch(`${base()}/api/tasks/${dated.id}`, {
-    method: "PUT",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ title: "dated", due: "nope" }),
-  });
-  assert.equal(broken.status, 200);
-  assert.equal((await broken.json()).due, "2026-12-01");
+  for (const bad of ["nope", "2026-02-30"]) {
+    const broken = await fetch(`${base()}/api/tasks/${dated.id}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "dated", due: bad }),
+    });
+    assert.equal(broken.status, 400, `due ${bad} should be rejected`);
+  }
+  const after = await fetch(`${base()}/api/tasks/${dated.id}`);
+  assert.equal((await after.json()).due, "2026-12-01");
 });
 
 test("PUT empty-string due clears a stored date", async () => {

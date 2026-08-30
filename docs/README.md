@@ -61,9 +61,10 @@ holds raw markdown and defaults to `""`; the UI renders it through a
 hand-rolled, sanitizing markdown-to-HTML converter (no dependencies). `done`
 defaults to `false` on create; `PUT` accepts an optional boolean `done` and
 preserves it when omitted. `due` is an optional `YYYY-MM-DD` date string,
-defaulting to `null` on create; `PUT` accepts an optional `due` (set, or `null`
-/ `""` to clear) and preserves the stored value when omitted or given a value
-that is not a valid calendar date. Tasks stored without `done`/`due` (from
+defaulting to `null` on create; `POST` silently stores `null` for an invalid
+`due`; `PUT` accepts an optional `due` (set, or `null` / `""` to clear),
+preserves the stored value when omitted, and rejects a value that is not a
+valid calendar date with `400`. Tasks stored without `done`/`due` (from
 older versions) are served normalized to `false`/`null`.
 
 ## Data storage
