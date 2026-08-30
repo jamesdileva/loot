@@ -68,6 +68,15 @@ h1 { margin: 0; font-size: 1.6rem; }
 
 .task button:disabled { opacity: 0.4; cursor: default; }
 
+.task.dragging {
+  opacity: 0.55;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: grabbing;
+  user-select: none;
+}
+.task { cursor: grab; }
+.task:active { cursor: grabbing; }
+
 .task button {
   padding: 0.3rem 0.6rem;
   border: 1px solid #d1d1d6;

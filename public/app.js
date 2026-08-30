@@ -6,6 +6,9 @@ const form = document.getElementById("add-form");
 const input = document.getElementById("title-input");
 const statusEl = document.getElementById("status");
 
+let dragging = null;
+let reordering = false;
+
 function setStatus(message, isError = false) {
   statusEl.textContent = message || "";
   statusEl.classList.toggle("error", isError);
@@ -149,23 +152,96 @@ function makeTaskElement(task, index, count) {
   renderNotesView();
   li.classList.toggle("done", state.done);
   li.append(checkbox, title, upBtn, downBtn, editBtn, notesBtn, deleteBtn, notesView, editor);
+  li.addEventListener("pointerdown", (e) => onPointerDown(e, li, state.id));
   return li;
 }
 
+async function reorderTask(id, toIndex) {
+  await api(`/api/tasks/${id}/order`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ toIndex }),
+  });
+}
+
 async function moveTask(id, toIndex, btn) {
-  btn.disabled = true;
+  if (reordering) return;
+  reordering = true;
+  if (btn) btn.disabled = true;
   try {
-    await api(`/api/tasks/${id}/order`, {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ toIndex }),
-    });
+    await reorderTask(id, toIndex);
     await render();
     setStatus("Task moved");
   } catch (err) {
-    btn.disabled = false;
     setStatus(err.message, true);
+    await render();
+  } finally {
+    reordering = false;
   }
+}
+
+function taskIndex(li) {
+  return Array.prototype.indexOf.call(list.children, li);
+}
+
+function dragIgnoredTarget(target) {
+  const t = target.closest ? target.closest("button, input, textarea, a, .notes-editor, .notes-view") : null;
+  return Boolean(t);
+}
+
+function onPointerDown(e, li, id) {
+  if (reordering || dragging || dragIgnoredTarget(e.target)) return;
+  if (taskIndex(li) === -1) return;
+  e.preventDefault();
+  dragging = { id, pointerId: e.pointerId, startIndex: taskIndex(li), li };
+  li.classList.add("dragging");
+  if (li.setPointerCapture) li.setPointerCapture(e.pointerId);
+  li.addEventListener("pointermove", onPointerMove);
+  li.addEventListener("pointerup", onPointerUp);
+  li.addEventListener("pointercancel", onPointerCancel);
+}
+
+function onPointerMove(e) {
+  if (!dragging || e.pointerId !== dragging.pointerId) return;
+  e.preventDefault();
+  const li = dragging.li;
+  const over = document.elementFromPoint(e.clientX, e.clientY);
+  const other = over && over.closest ? over.closest(".task") : null;
+  if (!other || other === li) return;
+  const rect = other.getBoundingClientRect();
+  const placeBefore = e.clientY < rect.top + rect.height / 2;
+  if (placeBefore) list.insertBefore(li, other);
+  else list.insertBefore(li, other.nextSibling);
+}
+
+async function onPointerUp(e) {
+  if (!dragging || e.pointerId !== dragging.pointerId) return;
+  const { id, li } = dragging;
+  const startIndex = dragging.startIndex;
+  dragging = null;
+  li.classList.remove("dragging");
+  li.removeEventListener("pointermove", onPointerMove);
+  li.removeEventListener("pointerup", onPointerUp);
+  li.removeEventListener("pointercancel", onPointerCancel);
+  const newIndex = taskIndex(li);
+  if (newIndex === startIndex || reordering) return;
+  reordering = true;
+  try {
+    await reorderTask(id, newIndex);
+    await render();
+    setStatus("Task moved");
+  } catch (err) {
+    setStatus(err.message, true);
+    await render();
+  } finally {
+    reordering = false;
+  }
+}
+
+function onPointerCancel(e) {
+  if (!dragging || e.pointerId !== dragging.pointerId) return;
+  dragging.li.classList.remove("dragging");
+  dragging = null;
 }
 
 function startEdit(li, state, titleEl) {
