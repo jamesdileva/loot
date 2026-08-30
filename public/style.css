@@ -66,6 +66,8 @@ h1 { margin: 0; font-size: 1.6rem; }
 .task .title { flex: 1; word-break: break-word; }
 .task .title.editing input { width: 100%; padding: 0.25rem 0.4rem; font-size: 1rem; }
 
+.task button:disabled { opacity: 0.4; cursor: default; }
+
 .task button {
   padding: 0.3rem 0.6rem;
   border: 1px solid #d1d1d6;

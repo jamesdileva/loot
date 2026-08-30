@@ -88,6 +88,7 @@ Scoped v1 todos and known deferred items:
 - [x] Task list UI
 - [x] Task done flag: checkbox + strikethrough (D#323)
 - [x] Markdown notes field + sanitized render (D#168)
+- [x] Task reorder: up/down buttons, array-order persistence, `PUT /api/tasks/:id/order` (D#366)
 - [x] Per-store write mutex serializes concurrent writers (mutate and write)
 - [x] Cap `readBody` size (1 MiB, `413` on overflow)
 - [x] Prefix-exact static file check (`root + sep`)

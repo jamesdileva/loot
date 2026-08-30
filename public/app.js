@@ -24,7 +24,7 @@ async function api(url, options) {
   return res.status === 204 ? null : res.json();
 }
 
-function makeTaskElement(task) {
+function makeTaskElement(task, index, count) {
   const li = document.createElement("li");
   li.className = "task";
   li.dataset.id = task.id;
@@ -55,6 +55,20 @@ function makeTaskElement(task) {
   const title = document.createElement("span");
   title.className = "title";
   title.textContent = state.title;
+
+  const upBtn = document.createElement("button");
+  upBtn.className = "move up";
+  upBtn.textContent = "↑";
+  upBtn.setAttribute("aria-label", "Move up");
+  upBtn.disabled = index === 0;
+  upBtn.addEventListener("click", () => moveTask(state.id, index - 1, upBtn));
+
+  const downBtn = document.createElement("button");
+  downBtn.className = "move down";
+  downBtn.textContent = "↓";
+  downBtn.setAttribute("aria-label", "Move down");
+  downBtn.disabled = index === count - 1;
+  downBtn.addEventListener("click", () => moveTask(state.id, index + 1, downBtn));
 
   const editBtn = document.createElement("button");
   editBtn.textContent = "Edit";
@@ -134,8 +148,24 @@ function makeTaskElement(task) {
 
   renderNotesView();
   li.classList.toggle("done", state.done);
-  li.append(checkbox, title, editBtn, notesBtn, deleteBtn, notesView, editor);
+  li.append(checkbox, title, upBtn, downBtn, editBtn, notesBtn, deleteBtn, notesView, editor);
   return li;
+}
+
+async function moveTask(id, toIndex, btn) {
+  btn.disabled = true;
+  try {
+    await api(`/api/tasks/${id}/order`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ toIndex }),
+    });
+    await render();
+    setStatus("Task moved");
+  } catch (err) {
+    btn.disabled = false;
+    setStatus(err.message, true);
+  }
 }
 
 function startEdit(li, state, titleEl) {
@@ -187,7 +217,7 @@ async function render() {
     return;
   }
   empty.hidden = true;
-  for (const task of tasks) list.append(makeTaskElement(task));
+  for (const [i, task] of tasks.entries()) list.append(makeTaskElement(task, i, tasks.length));
 }
 
 async function addTask(title) {

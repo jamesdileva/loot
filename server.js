@@ -61,10 +61,10 @@ async function addTask(store, title, notes) {
 }
 
 async function handleApi(req, res, url) {
-  const match = url.pathname.match(/^\/api\/tasks(?:\/(\d+))?$/);
+  const match = url.pathname.match(/^\/api\/tasks(?:\/(\d+))?(?:\/(order))?$/);
   if (!match) return false;
 
-  const [, idRaw] = match;
+  const [, idRaw, sub] = match;
   const id = idRaw ? Number(idRaw) : null;
 
   if (url.pathname === "/api/tasks") {
@@ -90,6 +90,30 @@ async function handleApi(req, res, url) {
   }
 
   if (id && Number.isInteger(id)) {
+    if (sub === "order") {
+      if (req.method !== "PUT") return json(res, 405, { error: "method not allowed" });
+      let body;
+      try {
+        body = await readBody(req);
+      } catch (err) {
+        if (err instanceof BodyTooLarge) return json(res, 413, { error: "body too large" });
+        return json(res, 400, { error: "invalid JSON" });
+      }
+      const toIndex = body && body.toIndex;
+      if (!Number.isInteger(toIndex)) {
+        return json(res, 400, { error: "toIndex must be an integer" });
+      }
+      const moved = await store.mutate(async (data) => {
+        const idx = data.tasks.findIndex((t) => t.id === id);
+        if (idx === -1) return null;
+        const [task] = data.tasks.splice(idx, 1);
+        const at = Math.max(0, Math.min(toIndex, data.tasks.length));
+        data.tasks.splice(at, 0, task);
+        return { id, toIndex: at };
+      });
+      if (!moved) return json(res, 404, { error: "task not found" });
+      return json(res, 200, moved);
+    }
     if (req.method === "GET") {
       const data = await store.read();
       const task = data.tasks.find((t) => t.id === id);
