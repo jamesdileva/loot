@@ -19,6 +19,23 @@
     <input id="search-input" class="search-input" type="search" placeholder="Filter tasks…" autocomplete="off" aria-label="Filter tasks">
     <p id="no-filter-match" class="empty" hidden>No tasks match your filter.</p>
 
+    <div class="view-controls">
+      <label>Status
+        <select id="status-select" aria-label="Status filter">
+          <option value="all">All</option>
+          <option value="open">Open</option>
+          <option value="done">Done</option>
+        </select>
+      </label>
+      <label>Due
+        <select id="due-select" aria-label="Due date filter">
+          <option value="all">Any date</option>
+          <option value="overdue">Overdue</option>
+          <option value="dated">Has due date</option>
+        </select>
+      </label>
+    </div>
+
     <div class="transfer">
       <button id="export-btn" type="button">Export</button>
       <button id="import-btn" type="button">Import</button>

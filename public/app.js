@@ -1,6 +1,6 @@
 import { renderMarkdown } from "/markdown.js";
 import { shouldStartDrag } from "/drag.js";
-import { filterTasks } from "/search.js";
+import { applyView, isOverdue, VIEW_ALL, DUE_ALL } from "/filter.js";
 
 const list = document.getElementById("task-list");
 const empty = document.getElementById("empty");
@@ -13,6 +13,13 @@ const statusEl = document.getElementById("status");
 let dragging = null;
 let reordering = false;
 let currentQuery = "";
+let currentStatus = VIEW_ALL;
+let currentDue = DUE_ALL;
+
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message || "";
@@ -38,13 +45,8 @@ function makeTaskElement(task, index, count) {
   li.dataset.id = task.id;
   const state = { id: task.id, title: task.title, notes: task.notes || "", done: Boolean(task.done), due: task.due || null };
 
-  function todayIso() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }
-
-  function isOverdue() {
-    return Boolean(state.due && !state.done && state.due < todayIso());
+  function isOverdueNow() {
+    return isOverdue(state, todayIso());
   }
 
   const checkbox = document.createElement("input");
@@ -62,7 +64,7 @@ function makeTaskElement(task, index, count) {
       });
       state.done = Boolean(updated.done);
       li.classList.toggle("done", state.done);
-      li.classList.toggle("overdue", isOverdue());
+      li.classList.toggle("overdue", isOverdueNow());
       setStatus(state.done ? "Task completed" : "Task reopened");
     } catch (err) {
       checkbox.checked = state.done;
@@ -106,7 +108,7 @@ function makeTaskElement(task, index, count) {
         body: JSON.stringify({ title: state.title, notes: state.notes, done: state.done, due: next }),
       });
       state.due = updated.due || null;
-      li.classList.toggle("overdue", isOverdue());
+      li.classList.toggle("overdue", isOverdueNow());
       setStatus(updated.due ? `Due ${updated.due}` : "Due date cleared");
     } catch (err) {
       dueInput.value = state.due || "";
@@ -188,7 +190,7 @@ function makeTaskElement(task, index, count) {
 
   renderNotesView();
   li.classList.toggle("done", state.done);
-  li.classList.toggle("overdue", isOverdue());
+  li.classList.toggle("overdue", isOverdueNow());
   li.append(checkbox, title, upBtn, downBtn, editBtn, dueInput, notesBtn, deleteBtn, notesView, editor);
   li.addEventListener("pointerdown", (e) => onPointerDown(e, li, state.id));
   return li;
@@ -331,7 +333,7 @@ function startEdit(li, state, titleEl) {
 async function render() {
   list.replaceChildren();
   const tasks = await api("/api/tasks");
-  const visible = filterTasks(tasks, currentQuery);
+  const visible = applyView(tasks, { query: currentQuery, status: currentStatus, due: currentDue, today: todayIso() });
   empty.hidden = true;
   noFilterMatch.hidden = true;
   if (tasks.length === 0) {
@@ -386,6 +388,19 @@ form.addEventListener("submit", async (e) => {
 
 searchInput.addEventListener("input", () => {
   currentQuery = searchInput.value;
+  render().catch((err) => setStatus(err.message, true));
+});
+
+const statusSelect = document.getElementById("status-select");
+const dueSelect = document.getElementById("due-select");
+
+statusSelect.addEventListener("change", () => {
+  currentStatus = statusSelect.value;
+  render().catch((err) => setStatus(err.message, true));
+});
+
+dueSelect.addEventListener("change", () => {
+  currentDue = dueSelect.value;
   render().catch((err) => setStatus(err.message, true));
 });
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (v1.4)
+
+### Features
+
+- Status filter (All/Open/Done) and due views (Overdue / Has due date, sorted
+  soonest-first) added to the toolbar, from a pure client module
+  (`public/filter.js` → `applyView` / `isOverdue`). Text, status, and due
+  filters AND together in a single filter; `isOverdue(task, today)` takes the
+  reference day as an injected argument so it is deterministic and unit-testable.
+
 ## Unreleased (v1.3)
 
 ### Features

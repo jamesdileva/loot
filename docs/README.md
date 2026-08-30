@@ -37,6 +37,7 @@ Configuration is via environment variables:
 | `public/markdown.js`    | Zero-dep markdown renderer that HTML-escapes all output     |
 | `public/drag.js`        | Pure drag math: 5px start threshold, `shouldStartDrag(dx, dy)` |
 | `public/search.js`      | Pure filter: `filterTasks(tasks, query)` over title+notes  |
+| `public/filter.js`      | Pure view: `isOverdue(task, today)` and `applyView(tasks, {query, status, due, today})` combining text + status + due with AND semantics |
 | `transfer.js`           | Pure export/import: `exportStore(data)`, `parseImport(value)` |
 | `public/`               | Static front-end assets                                     |
 | `test/`                 | Node test-runner tests                                      |
@@ -44,6 +45,23 @@ Configuration is via environment variables:
 
 The server routes `/api/*` to the task API and everything else to static files
 served from `public/`. Files outside `public/` are refused (`403`).
+
+## Status and due views
+
+The toolbar under the search box filters the list purely on the client:
+
+- **Status** — All / Open (not done) / Done.
+- **Due** — Any date / Overdue / Has due date. The "Has due date" view sorts
+  tasks soonest-first by `due`.
+
+The views combine with the text search and with each other: a task must match
+the text query AND the status bucket AND the due flag. `public/filter.js`
+provides the pure logic — `isOverdue(task, today)` takes `today` as an injected
+`YYYY-MM-DD` argument so behavior is deterministic (a task is overdue when it
+has a due date, is not done, and the due date is strictly before `today`), and
+`applyView(tasks, {query, status, due, today})` implements the combined filter
+without mutating the input. The text-search match mirrors `search.js`
+(`title`+`notes`, case-insensitive).
 
 ## HTTP API
 
@@ -97,7 +115,10 @@ on-disk save order** (the same array order used by reorder; not a sorted view).
 A re-import of a fresh export restores the identical store.
 
 `POST /api/import` replaces the store wholesale, and a backup of the prior
-store is written atomically to `DATA_FILE.pre-import` first. Input is validated
+store is written atomically to `DATA_FILE.pre-import` first. Importing an empty
+store (`{"tasks": []}`) is accepted and legitimately wipes the list (count `0`);
+the `.pre-import` backup written beforehand keeps the previous data
+recoverable. Input is validated
 strictly by `transfer.js` before anything is written: the body must be an
 object with a `tasks` array, each task needs a positive integer `id` and a
 non-empty `title` string, `notes`/`done`/`due` must be the right types when
@@ -140,3 +161,5 @@ Scoped v1 todos and known deferred items:
 - [x] Map `EACCES` to `404`-style errors
 - [x] Search/filter: live task filtering by title and notes from a pure module (D#600)
 - [x] JSON export/import (D#600): strict validation, atomic `.pre-import` backup, UI buttons
+- [x] Status filter (All/Open/Done) + due view (Overdue / Has due date sorted
+  soonest-first) from a pure client module (D#648)
