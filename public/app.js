@@ -31,7 +31,16 @@ function makeTaskElement(task, index, count) {
   const li = document.createElement("li");
   li.className = "task";
   li.dataset.id = task.id;
-  const state = { id: task.id, title: task.title, notes: task.notes || "", done: Boolean(task.done) };
+  const state = { id: task.id, title: task.title, notes: task.notes || "", done: Boolean(task.done), due: task.due || null };
+
+  function todayIso() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function isOverdue() {
+    return Boolean(state.due && !state.done && state.due < todayIso());
+  }
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -48,6 +57,7 @@ function makeTaskElement(task, index, count) {
       });
       state.done = Boolean(updated.done);
       li.classList.toggle("done", state.done);
+      li.classList.toggle("overdue", isOverdue());
       setStatus(state.done ? "Task completed" : "Task reopened");
     } catch (err) {
       checkbox.checked = state.done;
@@ -76,6 +86,28 @@ function makeTaskElement(task, index, count) {
   const editBtn = document.createElement("button");
   editBtn.textContent = "Edit";
   editBtn.addEventListener("click", () => startEdit(li, state, title));
+
+  const dueInput = document.createElement("input");
+  dueInput.type = "date";
+  dueInput.className = "due";
+  dueInput.value = state.due || "";
+  dueInput.setAttribute("aria-label", "Due date");
+  dueInput.addEventListener("change", async () => {
+    const next = dueInput.value || null;
+    try {
+      const updated = await api(`/api/tasks/${state.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: state.title, notes: state.notes, done: state.done, due: next }),
+      });
+      state.due = updated.due || null;
+      li.classList.toggle("overdue", isOverdue());
+      setStatus(updated.due ? `Due ${updated.due}` : "Due date cleared");
+    } catch (err) {
+      dueInput.value = state.due || "";
+      setStatus(err.message, true);
+    }
+  });
 
   const notesBtn = document.createElement("button");
   notesBtn.textContent = "Notes";
@@ -151,7 +183,8 @@ function makeTaskElement(task, index, count) {
 
   renderNotesView();
   li.classList.toggle("done", state.done);
-  li.append(checkbox, title, upBtn, downBtn, editBtn, notesBtn, deleteBtn, notesView, editor);
+  li.classList.toggle("overdue", isOverdue());
+  li.append(checkbox, title, upBtn, downBtn, editBtn, dueInput, notesBtn, deleteBtn, notesView, editor);
   li.addEventListener("pointerdown", (e) => onPointerDown(e, li, state.id));
   return li;
 }

@@ -50,5 +50,5 @@ test("POST works when DATA_FILE lives in a non-existent directory", async () => 
 
   const get = await fetch(`http://127.0.0.1:${port}/api/tasks`);
   assert.equal(get.status, 200);
-  assert.deepEqual(await get.json(), [{ id: task.id, title: "fresh-checkout", notes: "", done: false }]);
+  assert.deepEqual(await get.json(), [{ id: task.id, title: "fresh-checkout", notes: "", done: false, due: null }]);
 });

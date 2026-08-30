@@ -39,12 +39,20 @@ async function readBody(req) {
   return JSON.parse(raw);
 }
 
+function validDue(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const d = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10) === value ? value : null;
+}
+
 function normalizeTask(t) {
   return {
     id: t.id,
     title: t.title,
     notes: typeof t.notes === "string" ? t.notes : "",
     done: typeof t.done === "boolean" ? t.done : false,
+    due: validDue(t.due),
   };
 }
 
@@ -52,9 +60,9 @@ async function nextId(data) {
   return data.tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
 }
 
-async function addTask(store, title, notes) {
+async function addTask(store, title, notes, due) {
   return store.mutate(async (data) => {
-    const task = { id: await nextId(data), title, notes, done: false };
+    const task = { id: await nextId(data), title, notes, done: false, due: validDue(due) };
     data.tasks.push(task);
     return task;
   });
@@ -83,7 +91,7 @@ async function handleApi(req, res, url) {
       if (!body || typeof body.title !== "string" || !body.title.trim()) {
         return json(res, 400, { error: "title required" });
       }
-      const task = await addTask(store, body.title.trim(), typeof body.notes === "string" ? body.notes : "");
+      const task = await addTask(store, body.title.trim(), typeof body.notes === "string" ? body.notes : "", body.due);
       return json(res, 201, task);
     }
     return json(res, 405, { error: "method not allowed" });
@@ -138,7 +146,10 @@ async function handleApi(req, res, url) {
         const prev = data.tasks[idx];
         const notes = typeof body.notes === "string" ? body.notes : (prev.notes ?? "");
         const done = typeof body.done === "boolean" ? body.done : (prev.done ?? false);
-        data.tasks[idx] = { id, title, notes, done };
+        const due = body.due === undefined
+          ? (prev.due ?? null)
+          : (body.due === null || body.due === "" ? null : (validDue(body.due) ?? (prev.due ?? null)));
+        data.tasks[idx] = { id, title, notes, done, due };
         return data.tasks[idx];
       });
       if (!task) return json(res, 404, { error: "task not found" });

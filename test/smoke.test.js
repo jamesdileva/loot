@@ -69,5 +69,5 @@ test("HTML app can round-trip a task over /api/tasks", async () => {
 
   const getTasks = await fetch(`${base}/api/tasks`);
   assert.equal(getTasks.status, 200);
-  assert.deepEqual(await getTasks.json(), [{ id: task.id, title: "ui round-trip", notes: "", done: false }]);
+  assert.deepEqual(await getTasks.json(), [{ id: task.id, title: "ui round-trip", notes: "", done: false, due: null }]);
 });

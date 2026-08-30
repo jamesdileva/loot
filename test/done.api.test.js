@@ -75,7 +75,7 @@ test("PUT title-only preserves done", async () => {
     body: JSON.stringify({ title: "kept" }),
   });
   assert.equal(put.status, 200);
-  assert.deepEqual(await put.json(), { id: task.id, title: "kept", notes: "", done: true });
+  assert.deepEqual(await put.json(), { id: task.id, title: "kept", notes: "", done: true, due: null });
 });
 
 test("PUT non-boolean done is coerced to the stored value", async () => {
@@ -108,10 +108,10 @@ test("PUT with notes preserves done and notes round-trip unchanged", async () =>
   });
   assert.equal(put.status, 200);
   const updated = await put.json();
-  assert.deepEqual(updated, { id: task.id, title: "keep notes", notes: "# Plan\n- step one", done: true });
+  assert.deepEqual(updated, { id: task.id, title: "keep notes", notes: "# Plan\n- step one", done: true, due: null });
 
   const get = await fetch(`${base()}/api/tasks/${task.id}`);
-  assert.deepEqual(await get.json(), { id: task.id, title: "keep notes", notes: "# Plan\n- step one", done: true });
+  assert.deepEqual(await get.json(), { id: task.id, title: "keep notes", notes: "# Plan\n- step one", done: true, due: null });
 });
 
 test("done flag round-trips through the API for the UI checkbox", async () => {
@@ -136,9 +136,9 @@ test("legacy tasks stored without done are served normalized to false", async ()
 
   const list = await fetch(`${base()}/api/tasks`);
   assert.equal(list.status, 200);
-  assert.deepEqual(await list.json(), [{ id: 999, title: "legacy", notes: "old", done: false }]);
+  assert.deepEqual(await list.json(), [{ id: 999, title: "legacy", notes: "old", done: false, due: null }]);
 
   const single = await fetch(`${base()}/api/tasks/999`);
   assert.equal(single.status, 200);
-  assert.deepEqual(await single.json(), { id: 999, title: "legacy", notes: "old", done: false });
+  assert.deepEqual(await single.json(), { id: 999, title: "legacy", notes: "old", done: false, due: null });
 });

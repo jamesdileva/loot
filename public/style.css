@@ -87,6 +87,22 @@ h1 { margin: 0; font-size: 1.6rem; }
 
 .task button.delete:hover { background: #ffe5e5; border-color: #ff6961; }
 
+.task .due {
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #d1d1d6;
+  border-radius: 6px;
+  color: #3a3a3c;
+  background: #fbfbfd;
+}
+.task.overdue { border-color: #ffd1cc; }
+.task.overdue .due {
+  color: #d70015;
+  border-color: #ff6961;
+  background: #fff5f5;
+}
+
 .empty { color: #6e6e73; font-style: italic; }
 .status { color: #6e6e73; min-height: 1.2rem; margin: 0.5rem 0 0; }
 .status.error { color: #d70015; }

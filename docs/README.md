@@ -49,18 +49,21 @@ Base path: `/api/tasks`
 | Method   | Path             | Body          | Success          | Errors                          |
 |----------|------------------|---------------|------------------|---------------------------------|
 | `GET`    | `/api/tasks`     | —              | `200` list       | —                               |
-| `POST`   | `/api/tasks`     | `{"title":…, "notes":…}` | `201` task | `400` invalid JSON / missing title |
+| `POST`   | `/api/tasks`     | `{"title":…, "notes":…, "due": "YYYY-MM-DD"}` | `201` task | `400` invalid JSON / missing title |
 | `GET`    | `/api/tasks/:id` | —              | `200` task       | `404` not found                 |
-| `PUT`    | `/api/tasks/:id` | `{"title":…, "notes":…, "done": bool}` | `200` task | `400`, `404`            |
+| `PUT`    | `/api/tasks/:id` | `{"title":…, "notes":…, "done": bool, "due": "YYYY-MM-DD"\|null}` | `200` task | `400`, `404`            |
 | `DELETE` | `/api/tasks/:id` | —              | `200` removed    | `404`                           |
 
 Unsupported methods return `405`; unknown API routes return `404`. A task is
-`{"id": number, "title": string, "notes": string, "done": boolean}`. `notes`
+`{"id": number, "title": string, "notes": string, "done": boolean, "due": string|null}`. `notes`
 holds raw markdown and defaults to `""`; the UI renders it through a
 hand-rolled, sanitizing markdown-to-HTML converter (no dependencies). `done`
 defaults to `false` on create; `PUT` accepts an optional boolean `done` and
-preserves it when omitted. Tasks stored without `done` (from older versions)
-are served normalized to `false`.
+preserves it when omitted. `due` is an optional `YYYY-MM-DD` date string,
+defaulting to `null` on create; `PUT` accepts an optional `due` (set, or `null`
+/ `""` to clear) and preserves the stored value when omitted or given a value
+that is not a valid calendar date. Tasks stored without `done`/`due` (from
+older versions) are served normalized to `false`/`null`.
 
 ## Data storage
 
@@ -89,6 +92,7 @@ Scoped v1 todos and known deferred items:
 - [x] Task done flag: checkbox + strikethrough (D#323)
 - [x] Markdown notes field + sanitized render (D#168)
 - [x] Task reorder: up/down buttons, array-order persistence, `PUT /api/tasks/:id/order` (D#366)
+- [x] Task due dates: optional `YYYY-MM-DD` per task, overdue highlight in the UI (D#385)
 - [x] Per-store write mutex serializes concurrent writers (mutate and write)
 - [x] Cap `readBody` size (1 MiB, `413` on overflow)
 - [x] Prefix-exact static file check (`root + sep`)
