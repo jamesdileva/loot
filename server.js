@@ -210,7 +210,7 @@ const server = createServer(async (req, res) => {
 });
 
 if (process.send) {
-  server.listen(port, "127.0.0.1", () => process.send({ ready: true, port }));
+  server.listen(port, "127.0.0.1", () => process.send({ ready: true, port: server.address().port }));
 } else {
   server.listen(port, "127.0.0.1", () => {
     console.log(`Loot running at http://127.0.0.1:${port}`);

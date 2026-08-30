@@ -14,14 +14,13 @@ before(async () => {
   dir = await mkdtemp(join(tmpdir(), "loot-nodir-"));
   const errFile = join(dir, "child.err.log");
   const errStream = createWriteStream(errFile);
-  port = 5200 + Math.floor(Math.random() * 1000);
   child = spawn(process.execPath, ["server.js"], {
-    env: { ...process.env, PORT: String(port), DATA_FILE: join(dir, "missing", "data.json") },
+    env: { ...process.env, PORT: "0", DATA_FILE: join(dir, "missing", "data.json") },
     stdio: ["ignore", "ignore", "pipe", "ipc"],
   });
   child.stderr.pipe(errStream);
   const outcome = await Promise.race([
-    new Promise((resolve) => child.on("message", (msg) => resolve(msg && msg.ready ? "ready" : null))),
+    new Promise((resolve) => child.on("message", (msg) => { if (msg && msg.ready) port = msg.port; resolve(msg && msg.ready ? "ready" : null); })),
     new Promise((resolve) => child.once("exit", (code, sig) => resolve(`exit:${code}:${sig}`))),
     new Promise((resolve) => child.once("error", (e) => resolve(`error:${e.message}`))),
   ]);
