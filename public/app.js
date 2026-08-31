@@ -1,6 +1,7 @@
 import { renderMarkdown } from "/markdown.js";
 import { shouldStartDrag } from "/drag.js";
 import { applyView, isOverdue, VIEW_ALL, DUE_ALL } from "/filter.js";
+import { nextSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
 
 const list = document.getElementById("task-list");
 const empty = document.getElementById("empty");
@@ -15,6 +16,7 @@ let reordering = false;
 let currentQuery = "";
 let currentStatus = VIEW_ALL;
 let currentDue = DUE_ALL;
+let selectedIndex = null;
 
 function todayIso() {
   const d = new Date();
@@ -338,14 +340,44 @@ async function render() {
   noFilterMatch.hidden = true;
   if (tasks.length === 0) {
     empty.hidden = false;
+    selectedIndex = null;
     return;
   }
   if (visible.length === 0) {
     noFilterMatch.hidden = false;
+    selectedIndex = null;
     return;
   }
   for (const [i, task] of visible.entries()) list.append(makeTaskElement(task, i, visible.length));
+  if (selectedIndex === null || selectedIndex >= visible.length) selectedIndex = 0;
 }
+
+function moveSelection(action) {
+  const count = list.childElementCount;
+  if (count === 0) return;
+  const next = nextSelection(action, selectedIndex, count);
+  selectedIndex = next;
+  const item = list.children[selectedIndex];
+  if (item && item.focus) item.setAttribute("tabindex", "-1");
+  if (item) item.focus();
+}
+
+list.addEventListener("keydown", (e) => {
+  if (e.target.closest && (e.target.closest("input, textarea, button"))) return;
+  const action = shortcutAction(e.key);
+  if (action === ACTION_MOVE_UP || action === ACTION_MOVE_DOWN) {
+    e.preventDefault();
+    moveSelection(action);
+    return;
+  }
+  if (action === ACTION_TOGGLE_DONE) {
+    const item = list.children[selectedIndex];
+    if (!item) return;
+    e.preventDefault();
+    const box = item.querySelector(".done-box");
+    if (box) box.click();
+  }
+});
 
 async function addTask(title) {
   const task = await api("/api/tasks", {

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (v1.9)
+
+### Features
+
+- Keyboard navigation: arrow Up/Down move the selection across the task list
+  and Enter toggles the selected task's done flag, from a pure client module
+  (`public/nav.js` → `nextSelection` / `shortcutAction`). The handler is
+  scoped to the task list and ignores key presses while editing or clicking
+  buttons/inputs, so typing and form shortcuts are unaffected.
+
 ## Unreleased (v1.8)
 
 ### Test infrastructure
