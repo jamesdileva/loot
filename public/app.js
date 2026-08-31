@@ -343,11 +343,13 @@ async function render() {
   if (tasks.length === 0) {
     empty.hidden = false;
     selectedIndex = null;
+    syncSelectionUI();
     return;
   }
   if (visible.length === 0) {
     noFilterMatch.hidden = false;
     selectedIndex = null;
+    syncSelectionUI();
     return;
   }
   for (const [i, task] of visible.entries()) list.append(makeTaskElement(task, i, visible.length));
@@ -401,6 +403,8 @@ async function addTask(title) {
   });
   empty.hidden = true;
   list.append(makeTaskElement(task));
+  selectedIndex = selectionForRender(selectedIndex, list.childElementCount);
+  syncSelectionUI();
   setStatus("Task added");
 }
 
@@ -410,6 +414,8 @@ async function removeTask(id) {
     const el = list.querySelector(`[data-id="${id}"]`);
     if (el) el.remove();
     if (list.childElementCount === 0) empty.hidden = false;
+    selectedIndex = selectionForRender(selectedIndex, list.childElementCount);
+    syncSelectionUI();
     setStatus("Task deleted");
   } catch (err) {
     setStatus(err.message, true);
