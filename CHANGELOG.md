@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (v1.7)
+
+### Test infrastructure
+
+- `tests>0` guard (#208): `npm test` now runs through `test/verify.js`, which
+  discovers the suite by absolute path, executes it via the `node:test` runner,
+  and **fails with an explicit message if 0 tests execute**. A silently broken
+  test command (wrong cwd, lost `node`/`npm` on PATH) can no longer pass as a
+  green run.
+
 ## Unreleased (v1.6)
 
 ### Features
