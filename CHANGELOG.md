@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased (v1.11)
+
+### Features
+
+- Render-module refactor (#19): the render selection policy and per-row
+  display model move into pure functions in `public/render.js`
+  (`selectionForRender` / `rowModel`), covered by `node:test` without a browser
+  or jsdom. `app.js` keeps the DOM mechanics (row building, focus, `.selected`
+  class), now driven by that model.
+
+- Load-window focus entry (#20): the first row is pre-selected on load and
+  carries the list's single `tabindex` anchor, so keyboard navigation works as
+  soon as the list is reached by Tab — no longer requiring a first arrow/click.
+  This deliberately resolves the v1.10 tradeoff (list out of tab order until
+  the first arrow) without re-introducing a stray-Enter hazard: the
+  pre-selected row is highlighted but not focused on load, and Enter inside the
+  add form still adds a task. The currently selected row is the sole `tabindex`
+  anchor; it moves with arrow navigation.
+
 ## Unreleased (v1.10)
 
 ### Fixed
@@ -18,7 +37,8 @@
 - The DOM wiring of the keyboard nav (focus move, `.selected` class, Enter
   clicking the right done-box) is still exercised only by manual verification,
   not an automated browser/jsdom test. Extracting that wiring into pure
-  functions is planned as part of the app.js render-module refactor.
+  functions is planned as part of the app.js render-module refactor. The
+  pure-selection half shipped in v1.11 (→ `public/render.js` → `selectionForRender`).
 
 ## Unreleased (v1.9)
 

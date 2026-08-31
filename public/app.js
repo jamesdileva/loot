@@ -1,7 +1,8 @@
 import { renderMarkdown } from "/markdown.js";
 import { shouldStartDrag } from "/drag.js";
 import { applyView, isOverdue, VIEW_ALL, DUE_ALL } from "/filter.js";
-import { nextSelection, normalizeSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
+import { nextSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
+import { selectionForRender, rowModel } from "/render.js";
 
 const list = document.getElementById("task-list");
 const empty = document.getElementById("empty");
@@ -44,8 +45,9 @@ async function api(url, options) {
 function makeTaskElement(task, index, count) {
   const li = document.createElement("li");
   li.className = "task";
-  li.dataset.id = task.id;
-  const state = { id: task.id, title: task.title, notes: task.notes || "", done: Boolean(task.done), due: task.due || null };
+  const model = rowModel(task, index, count, todayIso());
+  li.dataset.id = model.id;
+  const state = { id: model.id, title: model.title, notes: model.notes, done: model.done, due: model.due };
 
   function isOverdueNow() {
     return isOverdue(state, todayIso());
@@ -82,14 +84,14 @@ function makeTaskElement(task, index, count) {
   upBtn.className = "move up";
   upBtn.textContent = "↑";
   upBtn.setAttribute("aria-label", "Move up");
-  upBtn.disabled = index === 0;
+  upBtn.disabled = model.moveUpDisabled;
   upBtn.addEventListener("click", () => moveTask(state.id, index - 1, upBtn));
 
   const downBtn = document.createElement("button");
   downBtn.className = "move down";
   downBtn.textContent = "↓";
   downBtn.setAttribute("aria-label", "Move down");
-  downBtn.disabled = index === count - 1;
+  downBtn.disabled = model.moveDownDisabled;
   downBtn.addEventListener("click", () => moveTask(state.id, index + 1, downBtn));
 
   const editBtn = document.createElement("button");
@@ -192,7 +194,7 @@ function makeTaskElement(task, index, count) {
 
   renderNotesView();
   li.classList.toggle("done", state.done);
-  li.classList.toggle("overdue", isOverdueNow());
+  li.classList.toggle("overdue", model.overdue);
   li.append(checkbox, title, upBtn, downBtn, editBtn, dueInput, notesBtn, deleteBtn, notesView, editor);
   li.addEventListener("pointerdown", (e) => onPointerDown(e, li, state.id));
   return li;
@@ -349,20 +351,29 @@ async function render() {
     return;
   }
   for (const [i, task] of visible.entries()) list.append(makeTaskElement(task, i, visible.length));
-  selectedIndex = normalizeSelection(selectedIndex, visible.length);
+  selectedIndex = selectionForRender(selectedIndex, visible.length);
+  syncSelectionUI();
+}
+
+function syncSelectionUI() {
+  for (const child of list.children) {
+    child.classList.remove("selected");
+    child.removeAttribute("tabindex");
+  }
+  const item = list.children[selectedIndex];
+  if (item) {
+    item.classList.add("selected");
+    item.setAttribute("tabindex", "0");
+  }
 }
 
 function moveSelection(action) {
   const count = list.childElementCount;
   if (count === 0) return;
   selectedIndex = nextSelection(action, selectedIndex, count);
+  syncSelectionUI();
   const item = list.children[selectedIndex];
-  for (const child of list.children) child.classList.remove("selected");
-  if (item) {
-    item.classList.add("selected");
-    item.setAttribute("tabindex", "-1");
-    item.focus();
-  }
+  if (item) item.focus();
 }
 
 list.addEventListener("keydown", (e) => {
