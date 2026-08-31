@@ -115,6 +115,11 @@ error paths), and the static-file smoke path. All offline, no network.
 Boot tests resolve `server.js` via `import.meta.url`, so `npm test` passes from
 any working directory — it is not cwd-sensitive.
 
+Outer tooling that surfaces a `build`/`test` light is **not authoritative** in
+either direction: a `0.0s` result means the harness never launched the suite,
+and it can also flash green while tests never ran. The sole authority is the
+in-repo `npm test` above, whose `>0` guard fails on a broken toolchain (`#236`).
+
 ## Export and import
 
 `GET /api/export` returns the whole store as `{"tasks": [...]}` in **persisted

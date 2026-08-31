@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased (v1.12)
+
+### Fixed
+
+- Selection-anchor sync (#21): `addTask` and `removeTask` now re-clamp
+  `selectedIndex` through `selectionForRender` and call `syncSelectionUI`, so
+  adding the first task into an empty list carries the `tabindex` anchor on the
+  new row and deleting the selected row never leaves a stale index (highlight
+  no longer silently vanishes after the delete; the next arrow works
+  immediately). `render()`'s empty/no-filter-match branches now also call
+  `syncSelectionUI`, so "selection state mirrors the list after every
+  mutation" holds unconditionally.
+
 ## Unreleased (v1.11)
 
 ### Features
