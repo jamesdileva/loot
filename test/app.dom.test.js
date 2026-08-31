@@ -240,3 +240,51 @@ test("a query with zero matches shows the no-filter-match placeholder and holds 
   assert.equal(list.childElementCount, 0);
   assert.equal(byId("no-filter-match").hidden, false);
 });
+
+test("overlapping renders from two synchronous filter changes produce no duplicate rows", async () => {
+  await resetView([
+    { id: 14, title: "Clean fridge", done: true },
+    { id: 15, title: "Read book", done: false },
+    { id: 16, title: "Pay rent", done: false },
+  ], 3);
+  selectValue("status-select", "done");
+  selectValue("due-select", "all");
+  await settle();
+  assert.equal(list.childElementCount, 1);
+  assert.deepEqual(titles(), ["Clean fridge"]);
+});
+
+test("stale render that resolves after a newer one does not wipe the newer rows", async () => {
+  await resetView([
+    { id: 17, title: "Buy milk" },
+    { id: 18, title: "Call plumber" },
+    { id: 19, title: "Clean fridge", done: true },
+  ], 3);
+  const realFetch = globalThis.fetch;
+  const gates = [];
+  globalThis.fetch = (url, opts) => {
+    if (String(url).endsWith("/api/tasks") && (opts?.method || "GET").toUpperCase() === "GET") {
+      let release;
+      const p = new Promise((r) => { release = r; });
+      gates.push(() => release(realFetch(url, opts)));
+      return p;
+    }
+    return realFetch(url, opts);
+  };
+  try {
+    selectValue("status-select", "done");
+    selectValue("due-select", "all");
+    assert.equal(gates.length, 2, "two synchronous filter changes should each trigger a render");
+    gates[1]();
+    await settle();
+    assert.equal(list.childElementCount, 1);
+    assert.deepEqual(titles(), ["Clean fridge"]);
+    gates[0]();
+    await settle();
+    assert.equal(list.childElementCount, 1, "stale render must not clobber the newer rows");
+    assert.deepEqual(titles(), ["Clean fridge"]);
+  } finally {
+    for (const g of gates) g();
+    globalThis.fetch = realFetch;
+  }
+});

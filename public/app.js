@@ -335,8 +335,12 @@ function startEdit(li, state, titleEl) {
   inputEl.addEventListener("blur", commit);
 }
 
+let renderSeq = 0;
+
 async function render() {
+  const seq = ++renderSeq;
   const tasks = await api("/api/tasks");
+  if (seq !== renderSeq) return;
   list.replaceChildren();
   const visible = applyView(tasks, { query: currentQuery, status: currentStatus, due: currentDue, today: todayIso() });
   empty.hidden = true;
@@ -468,11 +472,13 @@ const dueSelect = document.getElementById("due-select");
 
 statusSelect.addEventListener("change", () => {
   currentStatus = statusSelect.value;
+  renderDebounced.cancel();
   render().catch((err) => setStatus(err.message, true));
 });
 
 dueSelect.addEventListener("change", () => {
   currentDue = dueSelect.value;
+  renderDebounced.cancel();
   render().catch((err) => setStatus(err.message, true));
 });
 

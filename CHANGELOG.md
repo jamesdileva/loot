@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased (v1.17)
+
+### Fixed
+
+- Pinned the concurrent-render race with a monotonic `renderSeq` guard: when a
+  newer `render()` supersedes an older one still awaiting its fetch, the older
+  call now discards its commit instead of wiping the newer rows. Previously an
+  older render resolving after a newer one would clear the list (clear-after-
+  fetch traded the v1.16 duplicate bug for an oldest-wins stale clobber).
+- Status/due `<select>` changes now `cancel()` any pending debounced search
+  render before running, closing a narrow overlap window where a stale debounce
+  could land after the filter render. Two DOM regression tests pin both paths.
+
 ## Unreleased (v1.16)
 
 ### Fixed
