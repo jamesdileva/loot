@@ -9,7 +9,9 @@
   unprompted. Selection starts (and is visibly highlighted with a `.selected`
   outline) only after the first arrow key. A new pure helper
   `public/nav.js` → `normalizeSelection` anchors/drops the selection across
-  re-renders; the `nextSelection` / `shortcutAction` contract is unchanged.
+  re-renders; the `nextSelection` / `shortcutAction` contract is unchanged. As
+  a tradeoff, tasks carry no `tabindex` on load, so the list is out of tab
+  order until the first arrow or click.
 
 ### Known gaps
 
