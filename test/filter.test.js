@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   applyView,
   isOverdue,
+  viewIsFiltered,
   VIEW_ALL,
   VIEW_OPEN,
   VIEW_DONE,
@@ -121,4 +122,46 @@ test("applyView: returns a new array, not the same reference", () => {
 test("applyView: keeps the same task object references", () => {
   const out = applyView(tasks, { query: "milk" });
   assert.equal(out[0], tasks[1]);
+});
+
+test("viewIsFiltered: a default view has no active filters", () => {
+  assert.equal(viewIsFiltered(), false);
+});
+
+test("viewIsFiltered: a whitespace-only query is not an active filter", () => {
+  assert.equal(viewIsFiltered({ query: "   " }), false);
+});
+
+test("viewIsFiltered: a real text query is an active filter", () => {
+  assert.equal(viewIsFiltered({ query: "milk" }), true);
+});
+
+test("viewIsFiltered: status filters are active", () => {
+  assert.equal(viewIsFiltered({ status: VIEW_OPEN }), true);
+  assert.equal(viewIsFiltered({ status: VIEW_DONE }), true);
+});
+
+test("viewIsFiltered: due filters are active", () => {
+  assert.equal(viewIsFiltered({ due: DUE_OVERDUE }), true);
+  assert.equal(viewIsFiltered({ due: DUE_DATED }), true);
+});
+
+test("viewIsFiltered: any of query/status/due active reports filtered", () => {
+  assert.equal(viewIsFiltered({ query: "x" }), true);
+  assert.equal(viewIsFiltered({ status: VIEW_OPEN }), true);
+  assert.equal(viewIsFiltered({ due: DUE_OVERDUE }), true);
+});
+
+test("viewIsFiltered: invalid status and due values are not active filters", () => {
+  assert.equal(viewIsFiltered({ status: "bogus", due: "nope" }), false);
+  assert.equal(viewIsFiltered({ status: VIEW_ALL, due: DUE_ALL }), false);
+});
+
+test("applyView: a freshly added task is invisible under done/overdue/dated/query views", () => {
+  const fresh = { id: 99, title: "Fresh task", notes: "", done: false, due: null };
+  assert.deepEqual(applyView([fresh], { status: VIEW_DONE }), []);
+  assert.deepEqual(applyView([fresh], { due: DUE_OVERDUE, today: TODAY }), []);
+  assert.deepEqual(applyView([fresh], { due: DUE_DATED }), []);
+  assert.deepEqual(applyView([fresh], { query: "zzz" }), []);
+  assert.deepEqual(applyView([fresh], { status: VIEW_OPEN }).map((t) => t.id), [99]);
 });

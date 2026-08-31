@@ -1,6 +1,6 @@
 import { renderMarkdown } from "/markdown.js";
 import { shouldStartDrag } from "/drag.js";
-import { applyView, isOverdue, VIEW_ALL, DUE_ALL } from "/filter.js";
+import { applyView, isOverdue, viewIsFiltered, VIEW_ALL, DUE_ALL } from "/filter.js";
 import { nextSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
 import { selectionForRender, rowModel } from "/render.js";
 import { createDebouncer } from "/debounce.js";
@@ -409,8 +409,14 @@ async function addTask(title) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ title }),
   });
+  if (viewIsFiltered({ query: currentQuery, status: currentStatus, due: currentDue })) {
+    await render();
+    setStatus("Task added");
+    return;
+  }
+  const prevCount = list.childElementCount;
   empty.hidden = true;
-  list.append(makeTaskElement(task));
+  list.append(makeTaskElement(task, prevCount, prevCount + 1));
   selectedIndex = selectionForRender(selectedIndex, list.childElementCount);
   syncSelectionUI();
   setStatus("Task added");
@@ -448,9 +454,10 @@ form.addEventListener("submit", async (e) => {
 });
 
 searchInput.addEventListener("input", () => {
+  const wasEmpty = currentQuery.trim() === "";
   currentQuery = searchInput.value;
   if (currentQuery.trim() === "") {
-    if (!renderDebounced.flush()) renderNow();
+    if (!wasEmpty && !renderDebounced.flush()) renderNow();
   } else {
     renderDebounced.schedule();
   }

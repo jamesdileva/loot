@@ -40,3 +40,10 @@ export function applyView(tasks, view = {}) {
   }
   return out;
 }
+
+export function viewIsFiltered(view = {}) {
+  const query = String(view.query ?? "").trim();
+  const status = view.status === VIEW_OPEN || view.status === VIEW_DONE ? view.status : VIEW_ALL;
+  const due = view.due === DUE_OVERDUE || view.due === DUE_DATED ? view.due : DUE_ALL;
+  return query !== "" || status !== VIEW_ALL || due !== DUE_ALL;
+}

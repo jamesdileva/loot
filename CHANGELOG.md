@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased (v1.15)
+
+### Fixed
+
+- addTask filtered-append mismatch (D#988, from D#249): adding a task while a
+  text query / status / due filter is active no longer appends the raw row —
+  which could fail the current view (a non-matching title still shown until the
+  next render), leave the appended row with both move buttons actionable
+  (index/count were `undefined`), sit at the wrong position under the
+  due-sorted `DUE_DATED` view, or bypass the no-filter-match empty state.
+  `public/filter.js` adds pure `viewIsFiltered(view)` (any active
+  query/status/due filter?); `addTask` now branches — any active filter →
+  cancel the pending debounced render and run the single full-`render()` path
+  (correct sort/filter/no-match state, selection re-clamped by
+  `selectionForRender`); no active filter → optimistic append with real
+  index/count so the move buttons clamp. Tests in `test/filter.test.js` cover
+  `viewIsFiltered` and pin the reasoning the branch depends on: a freshly added
+  task is invisible under done/overdue/dated/query views, so those paths must
+  render, not append.
+
+- The search box no longer re-renders when a query that is already empty grows
+  whitespace (typing a Space), per the REVIEW #250 nit: only the non-empty→empty
+  transition prompts an immediate flush-or-render; other empty→empty input is
+  a no-op. The debounced-typing behavior from v1.14 is unchanged.
+
 ## Unreleased (v1.14)
 
 ### Features

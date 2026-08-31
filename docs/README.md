@@ -37,7 +37,7 @@ Configuration is via environment variables:
 | `public/markdown.js`    | Zero-dep markdown renderer that HTML-escapes all output     |
 | `public/drag.js`        | Pure drag math: 5px start threshold, `shouldStartDrag(dx, dy)` |
 | `public/search.js`      | Pure filter: `filterTasks(tasks, query)` over title+notes  |
-| `public/filter.js`      | Pure view: `isOverdue(task, today)` and `applyView(tasks, {query, status, due, today})` combining text + status + due with AND semantics |
+| `public/filter.js`      | Pure view: `isOverdue(task, today)`, `applyView(tasks, {query, status, due, today})` combining text + status + due with AND semantics, and `viewIsFiltered(view)` (does the view have any active filter? — drives optimistic-append vs full-render) |
 | `public/nav.js`         | Pure keyboard nav: `nextSelection(move, index, count)`, `shortcutAction(key)` |
 | `public/render.js`      | Pure render policy: `selectionForRender(prev, count)` (pre-selects first row on load) and `rowModel(task, index, count, today)` |
 | `public/debounce.js`    | Pure debounce: `createDebouncer(fn, {delay, setTimeout, clearTimeout})` → `{schedule, flush, cancel}`; timers injectable for deterministic tests |
@@ -67,9 +67,16 @@ without mutating the input. The text-search match mirrors `search.js`
 (`title`+`notes`, case-insensitive).
 
 The text search is debounced (300ms) so a full render round-trip is not fired
-on every keystroke. Clearing the search box renders the full list immediately,
-and add / delete / import cancel any pending debounced render so the list never
-goes stale.
+on every keystroke. Clearing the search box renders the full list immediately —
+and only when the query actually transitions non-empty→empty, so typing a
+space into an already-empty box never re-renders. Add / delete / import cancel
+any pending debounced render so the list never goes stale. `viewIsFiltered`
+(from `public/filter.js`) reports whether the current query/status/due combo
+has any active filter; `addTask` uses it to pick between an optimistic append
+(no active filter — the new row is always visible at the end, move buttons
+clamped by real index/count) and the single full-`render()` path (any active
+filter — the new row must be sorted, filtered out, or surface the
+no-filter-match state correctly instead of being appended unconditionally).
 
 ## HTTP API
 
