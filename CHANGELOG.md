@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased (v1.10)
+
+### Fixed
+
+- Keyboard-navigation selection is no longer pre-set to the first task on
+  render, so a stray Enter right after load can no longer toggle task #1
+  unprompted. Selection starts (and is visibly highlighted with a `.selected`
+  outline) only after the first arrow key. A new pure helper
+  `public/nav.js` → `normalizeSelection` anchors/drops the selection across
+  re-renders; the `nextSelection` / `shortcutAction` contract is unchanged.
+
+### Known gaps
+
+- The DOM wiring of the keyboard nav (focus move, `.selected` class, Enter
+  clicking the right done-box) is still exercised only by manual verification,
+  not an automated browser/jsdom test. Extracting that wiring into pure
+  functions is planned as part of the app.js render-module refactor.
+
 ## Unreleased (v1.9)
 
 ### Features

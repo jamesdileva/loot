@@ -16,6 +16,13 @@ export function nextSelection(move, index, count) {
   return index;
 }
 
+export function normalizeSelection(selectedIndex, count) {
+  if (count === 0) return null;
+  if (selectedIndex === null || selectedIndex === undefined) return null;
+  if (selectedIndex < 0 || selectedIndex >= count) return null;
+  return selectedIndex;
+}
+
 export function shortcutAction(key, options = {}) {
   if (key === KEY_DOWN) return ACTION_MOVE_DOWN;
   if (key === KEY_UP) return ACTION_MOVE_UP;

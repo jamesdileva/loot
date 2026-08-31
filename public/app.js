@@ -1,7 +1,7 @@
 import { renderMarkdown } from "/markdown.js";
 import { shouldStartDrag } from "/drag.js";
 import { applyView, isOverdue, VIEW_ALL, DUE_ALL } from "/filter.js";
-import { nextSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
+import { nextSelection, normalizeSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
 
 const list = document.getElementById("task-list");
 const empty = document.getElementById("empty");
@@ -349,17 +349,20 @@ async function render() {
     return;
   }
   for (const [i, task] of visible.entries()) list.append(makeTaskElement(task, i, visible.length));
-  if (selectedIndex === null || selectedIndex >= visible.length) selectedIndex = 0;
+  selectedIndex = normalizeSelection(selectedIndex, visible.length);
 }
 
 function moveSelection(action) {
   const count = list.childElementCount;
   if (count === 0) return;
-  const next = nextSelection(action, selectedIndex, count);
-  selectedIndex = next;
+  selectedIndex = nextSelection(action, selectedIndex, count);
   const item = list.children[selectedIndex];
-  if (item && item.focus) item.setAttribute("tabindex", "-1");
-  if (item) item.focus();
+  for (const child of list.children) child.classList.remove("selected");
+  if (item) {
+    item.classList.add("selected");
+    item.setAttribute("tabindex", "-1");
+    item.focus();
+  }
 }
 
 list.addEventListener("keydown", (e) => {

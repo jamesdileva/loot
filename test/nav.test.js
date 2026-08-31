@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   nextSelection,
+  normalizeSelection,
   shortcutAction,
   ACTION_MOVE_UP,
   ACTION_MOVE_DOWN,
@@ -43,6 +44,25 @@ test("nextSelection: up clamps at first item", () => {
 
 test("nextSelection: unknown move leaves index unchanged", () => {
   assert.equal(nextSelection("bogus", 1, 3), 1);
+});
+
+test("normalizeSelection: never pre-selects when nothing has been selected", () => {
+  assert.equal(normalizeSelection(null, 3), null);
+  assert.equal(normalizeSelection(undefined, 3), null);
+});
+
+test("normalizeSelection: no items clears selection", () => {
+  assert.equal(normalizeSelection(0, 0), null);
+  assert.equal(normalizeSelection(null, 0), null);
+});
+
+test("normalizeSelection: keeps an in-range selection", () => {
+  assert.equal(normalizeSelection(2, 3), 2);
+});
+
+test("normalizeSelection: out-of-range or negative selection resets to none", () => {
+  assert.equal(normalizeSelection(3, 3), null);
+  assert.equal(normalizeSelection(-1, 3), null);
 });
 
 test("shortcutAction: arrow down maps to move-down", () => {

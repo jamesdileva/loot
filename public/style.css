@@ -120,6 +120,7 @@ h1 { margin: 0; font-size: 1.6rem; }
 }
 .task { cursor: grab; }
 .task:active { cursor: grabbing; }
+.task.selected { border-color: #0a84ff; outline: 2px solid rgba(10, 132, 255, 0.35); }
 
 .task button {
   padding: 0.3rem 0.6rem;
