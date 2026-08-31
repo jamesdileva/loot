@@ -38,7 +38,7 @@ Configuration is via environment variables:
 | `public/drag.js`        | Pure drag math: 5px start threshold, `shouldStartDrag(dx, dy)` |
 | `public/search.js`      | Pure filter: `filterTasks(tasks, query)` over title+notes  |
 | `public/filter.js`      | Pure view: `isOverdue(task, today)` and `applyView(tasks, {query, status, due, today})` combining text + status + due with AND semantics |
-| `public/nav.js`         | Pure keyboard nav: `nextSelection(move, index, count)`, `normalizeSelection`, `shortcutAction(key)` |
+| `public/nav.js`         | Pure keyboard nav: `nextSelection(move, index, count)`, `shortcutAction(key)` |
 | `public/render.js`      | Pure render policy: `selectionForRender(prev, count)` (pre-selects first row on load) and `rowModel(task, index, count, today)` |
 | `transfer.js`           | Pure export/import: `exportStore(data)`, `parseImport(value)` |
 | `public/`               | Static front-end assets                                     |

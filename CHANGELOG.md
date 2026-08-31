@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased (v1.13)
+
+### Removed
+
+- Dead `public/nav.js` → `normalizeSelection` export dropped (D#933 aftermath):
+  it was production-dead after the v1.11 render refactor and its contract
+  (out-of-range resets to `null`) contradicted the shipped
+  `selectionForRender` out-of-range pre-select policy, making it a trap for
+  future callers. Selection clamping now lives solely in `selectionForRender`;
+  the four `normalizeSelection` tests were deleted and README module table
+  updated.
+
 ## Unreleased (v1.12)
 
 ### Fixed
