@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (v1.6)
+
+### Features
+
+- E2E smoke slice (#189): the smoke test boots the real server on an ephemeral
+  port, asserts GET / returns 200, round-trips a task over `/api/tasks`, and
+  confirms storage isolation — writes land in `DATA_FILE`, never in the
+  default workspace `data/data.json`.
+
 ## Unreleased (v1.4)
 
 ### Features

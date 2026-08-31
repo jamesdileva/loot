@@ -70,3 +70,26 @@ test("HTML app can round-trip a task over /api/tasks", async () => {
   assert.equal(getTasks.status, 200);
   assert.deepEqual(await getTasks.json(), [{ id: task.id, title: "ui round-trip", notes: "", done: false, due: null }]);
 });
+
+test("storage is isolated to DATA_FILE, not the default workspace data path", async () => {
+  const base = `http://127.0.0.1:${port}`;
+  const post = await fetch(`${base}/api/tasks`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ title: "isolated-write" }),
+  });
+  assert.equal(post.status, 201);
+
+  const stored = JSON.parse(await readFile(join(dir, "data.json"), "utf8"));
+  assert.ok(stored.tasks.some((t) => t.title === "isolated-write"));
+
+  const prodPath = new URL("../data/data.json", import.meta.url);
+  const hasProd = await readFile(prodPath, "utf8").then(
+    () => true,
+    () => false
+  );
+  if (hasProd) {
+    const prod = JSON.parse(await readFile(prodPath, "utf8"));
+    assert.ok(!prod.tasks.some((t) => t.title === "isolated-write"));
+  }
+});
