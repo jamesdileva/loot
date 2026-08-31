@@ -38,6 +38,14 @@ function makeStore() {
       if (i < 0) return null;
       return norm(tasks.splice(i, 1)[0]);
     },
+    move(id, toIndex) {
+      const i = tasks.findIndex((x) => String(x.id) === String(id));
+      if (i < 0) return null;
+      const [task] = tasks.splice(i, 1);
+      const clamped = Math.max(0, Math.min(Number(toIndex) || 0, tasks.length));
+      tasks.splice(clamped, 0, task);
+      return norm(task);
+    },
     update(id, patch) {
       const i = tasks.findIndex((x) => String(x.id) === String(id));
       if (i < 0) return null;
@@ -77,6 +85,11 @@ globalThis.fetch = async (url, options = {}) => {
   const m = path.match(/^\/api\/tasks\/(\d+)(?:\/order)?$/);
   if (m) {
     const id = Number(m[1]);
+    const isOrder = /\/order$/.test(path);
+    if (isOrder && method === "PUT") {
+      const moved = store.move(id, body().toIndex);
+      return moved ? respond(200, moved) : respond(404, { error: "not found" });
+    }
     if (method === "DELETE") {
       const removed = store.remove(id);
       return removed ? respond(200, removed) : respond(404, { error: "not found" });
@@ -252,6 +265,26 @@ test("overlapping renders from two synchronous filter changes produce no duplica
   await settle();
   assert.equal(list.childElementCount, 1);
   assert.deepEqual(titles(), ["Clean fridge"]);
+});
+
+test("move buttons reorder rows in the DOM and persist the new order to the store", async () => {
+  await resetView([
+    { id: 20, title: "Alpha" },
+    { id: 21, title: "Beta" },
+    { id: 22, title: "Gamma" },
+  ], 3);
+  assert.deepEqual(titles(), ["Alpha", "Beta", "Gamma"]);
+
+  list.children[0].querySelector(".down").click();
+  assert.ok(await waitFor(() => byId("status").textContent === "Task moved" && titles().join("|") === "Beta|Alpha|Gamma"));
+  assert.deepEqual(store.list().map((t) => t.title), ["Beta", "Alpha", "Gamma"]);
+
+  list.children[2].querySelector(".up").click();
+  assert.ok(await waitFor(() => byId("status").textContent === "Task moved" && titles().join("|") === "Beta|Gamma|Alpha"));
+  assert.deepEqual(store.list().map((t) => t.title), ["Beta", "Gamma", "Alpha"]);
+
+  assert.ok(list.children[0].querySelector(".up").disabled, "first row's up button is disabled");
+  assert.ok(list.children[2].querySelector(".down").disabled, "last row's down button is disabled");
 });
 
 test("stale render that resolves after a newer one does not wipe the newer rows", async () => {

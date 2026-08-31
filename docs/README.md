@@ -37,14 +37,14 @@ Configuration is via environment variables:
 | `public/markdown.js`    | Zero-dep markdown renderer that HTML-escapes all output     |
 | `public/drag.js`        | Pure drag math: 5px start threshold, `shouldStartDrag(dx, dy)` |
 | `public/search.js`      | Pure filter: `filterTasks(tasks, query)` over title+notes  |
-| `public/filter.js`      | Pure view: `isOverdue(task, today)`, `applyView(tasks, {query, status, due, today})` combining text + status + due with AND semantics, and `viewIsFiltered(view)` (does the view have any active filter? — drives optimistic-append vs full-render) |
+| `public/filter.js`      | Pure view: `isOverdue(task, today)`, `applyView(tasks, {query, status, due, today})` combining text + status + due with AND semantics, `normalizeStatus(value)` / `normalizeDue(value)` (canonical select-value clamp), and `viewIsFiltered(view)` (does the view have any active filter? — drives optimistic-append vs full-render) |
 | `public/nav.js`         | Pure keyboard nav: `nextSelection(move, index, count)`, `shortcutAction(key)` |
 | `public/render.js`      | Pure render policy: `selectionForRender(prev, count)` (pre-selects first row on load) and `rowModel(task, index, count, today)` |
 | `public/debounce.js`    | Pure debounce: `createDebouncer(fn, {delay, setTimeout, clearTimeout})` → `{schedule, flush, cancel}`; timers injectable for deterministic tests |
 | `transfer.js`           | Pure export/import: `exportStore(data)`, `parseImport(value)` |
 | `test/dom.js`           | Zero-dep fake DOM + `createDom()` for importing `public/app.js` in-process |
 | `test/loader-hooks.js`  | Module resolve hook: maps absolute `/x` imports to `public/x` in tests |
-| `test/app.dom.test.js`  | Headless end-to-end DOM tests: boot render, add task, search, filtered-append, no-filter-match placeholders |
+| `test/app.dom.test.js`  | Headless end-to-end DOM tests: boot render, add task, search, filtered-append, no-filter-match placeholders, move-button reorder |
 | `public/`               | Static front-end assets                                     |
 | `test/`                 | Node test-runner tests                                      |
 | `docs/`                 | This documentation                                          |

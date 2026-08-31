@@ -1,6 +1,6 @@
 import { renderMarkdown } from "/markdown.js";
 import { shouldStartDrag } from "/drag.js";
-import { applyView, isOverdue, viewIsFiltered, VIEW_ALL, DUE_ALL } from "/filter.js";
+import { applyView, isOverdue, viewIsFiltered, normalizeStatus, normalizeDue, VIEW_ALL, DUE_ALL } from "/filter.js";
 import { nextSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
 import { selectionForRender, rowModel } from "/render.js";
 import { createDebouncer } from "/debounce.js";
@@ -471,13 +471,13 @@ const statusSelect = document.getElementById("status-select");
 const dueSelect = document.getElementById("due-select");
 
 statusSelect.addEventListener("change", () => {
-  currentStatus = statusSelect.value;
+  currentStatus = normalizeStatus(statusSelect.value);
   renderDebounced.cancel();
   render().catch((err) => setStatus(err.message, true));
 });
 
 dueSelect.addEventListener("change", () => {
-  currentDue = dueSelect.value;
+  currentDue = normalizeDue(dueSelect.value);
   renderDebounced.cancel();
   render().catch((err) => setStatus(err.message, true));
 });

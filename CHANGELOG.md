@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased (v1.18)
+
+### Added
+
+- Macro-branch DOM coverage: `test/app.dom.test.js` now drives the move-up/down
+  buttons end to end (the reorder path was previously API-tested but had zero
+  UI-wiring coverage) — a real test clicks the buttons, asserts the DOM row
+  order flips, verifies the new order is persisted through the store, and
+  checks the first-row-up / last-row-down buttons clamp as disabled. The fake
+  store gained a `move(id, toIndex)` and the fake fetch handles the
+  `PUT /api/tasks/:id/order` route.
+
+### Changed
+
+- Status/due `<select>` values are normalized at the source: `app.js` now
+  feeds `normalizeStatus(statusSelect.value)` / `normalizeDue(dueSelect.value)`
+  into the change handlers instead of raw select values. The canonical clamp
+  logic moved into pure `normalizeStatus(value)` / `normalizeDue(value)` in
+  `public/filter.js` (exported, reused by `applyView` and `viewIsFiltered`), so
+  `currentStatus`/`currentDue` never hold an off-menu value and the view state
+  matches what the dropdowns can produce. 4 new unit tests + 1 DOM test,
+  183/183 green.
+
 ## Unreleased (v1.17)
 
 ### Fixed

@@ -17,10 +17,18 @@ function matchesText(task, query) {
   );
 }
 
+export function normalizeStatus(value) {
+  return value === VIEW_OPEN || value === VIEW_DONE ? value : VIEW_ALL;
+}
+
+export function normalizeDue(value) {
+  return value === DUE_OVERDUE || value === DUE_DATED ? value : DUE_ALL;
+}
+
 export function applyView(tasks, view = {}) {
   const query = String(view.query ?? "").trim().toLowerCase();
-  const status = view.status === VIEW_OPEN || view.status === VIEW_DONE ? view.status : VIEW_ALL;
-  const due = view.due === DUE_OVERDUE || view.due === DUE_DATED ? view.due : DUE_ALL;
+  const status = normalizeStatus(view.status);
+  const due = normalizeDue(view.due);
 
   const out = tasks.filter((task) => {
     if (query && !matchesText(task, query)) return false;
@@ -43,7 +51,7 @@ export function applyView(tasks, view = {}) {
 
 export function viewIsFiltered(view = {}) {
   const query = String(view.query ?? "").trim();
-  const status = view.status === VIEW_OPEN || view.status === VIEW_DONE ? view.status : VIEW_ALL;
-  const due = view.due === DUE_OVERDUE || view.due === DUE_DATED ? view.due : DUE_ALL;
+  const status = normalizeStatus(view.status);
+  const due = normalizeDue(view.due);
   return query !== "" || status !== VIEW_ALL || due !== DUE_ALL;
 }

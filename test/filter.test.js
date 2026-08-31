@@ -4,6 +4,8 @@ import {
   applyView,
   isOverdue,
   viewIsFiltered,
+  normalizeStatus,
+  normalizeDue,
   VIEW_ALL,
   VIEW_OPEN,
   VIEW_DONE,
@@ -155,6 +157,24 @@ test("viewIsFiltered: any of query/status/due active reports filtered", () => {
 test("viewIsFiltered: invalid status and due values are not active filters", () => {
   assert.equal(viewIsFiltered({ status: "bogus", due: "nope" }), false);
   assert.equal(viewIsFiltered({ status: VIEW_ALL, due: DUE_ALL }), false);
+});
+
+test("normalizeStatus: only open/done survive, everything else becomes all", () => {
+  assert.equal(normalizeStatus(VIEW_OPEN), VIEW_OPEN);
+  assert.equal(normalizeStatus(VIEW_DONE), VIEW_DONE);
+  assert.equal(normalizeStatus("bogus"), VIEW_ALL);
+  assert.equal(normalizeStatus(undefined), VIEW_ALL);
+  assert.equal(normalizeStatus(""), VIEW_ALL);
+  assert.equal(normalizeStatus(VIEW_ALL), VIEW_ALL);
+});
+
+test("normalizeDue: only overdue/dated survive, everything else becomes all", () => {
+  assert.equal(normalizeDue(DUE_OVERDUE), DUE_OVERDUE);
+  assert.equal(normalizeDue(DUE_DATED), DUE_DATED);
+  assert.equal(normalizeDue("bogus"), DUE_ALL);
+  assert.equal(normalizeDue(undefined), DUE_ALL);
+  assert.equal(normalizeDue(""), DUE_ALL);
+  assert.equal(normalizeDue(DUE_ALL), DUE_ALL);
 });
 
 test("applyView: a freshly added task is invisible under done/overdue/dated/query views", () => {
