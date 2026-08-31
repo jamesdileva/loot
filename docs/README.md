@@ -42,6 +42,9 @@ Configuration is via environment variables:
 | `public/render.js`      | Pure render policy: `selectionForRender(prev, count)` (pre-selects first row on load) and `rowModel(task, index, count, today)` |
 | `public/debounce.js`    | Pure debounce: `createDebouncer(fn, {delay, setTimeout, clearTimeout})` → `{schedule, flush, cancel}`; timers injectable for deterministic tests |
 | `transfer.js`           | Pure export/import: `exportStore(data)`, `parseImport(value)` |
+| `test/dom.js`           | Zero-dep fake DOM + `createDom()` for importing `public/app.js` in-process |
+| `test/loader-hooks.js`  | Module resolve hook: maps absolute `/x` imports to `public/x` in tests |
+| `test/app.dom.test.js`  | Headless end-to-end DOM tests: boot render, add task, search, filtered-append, no-filter-match placeholders |
 | `public/`               | Static front-end assets                                     |
 | `test/`                 | Node test-runner tests                                      |
 | `docs/`                 | This documentation                                          |
@@ -193,5 +196,9 @@ Scoped v1 todos and known deferred items:
   storage isolation
 - [x] `tests>0` guard (#208): `npm test` runs through `test/verify.js` and fails
   loudly if 0 tests execute
+- [x] Minimal DOM harness (#254/#255): zero-dep fake DOM + loader hook import
+  the real `public/app.js` in-process; headless end-to-end tests cover the
+  filtered-append paths (query / status / due renders, no-filter-match, boot
+  pre-selection) and exposed a real `render()` accumulation race, now fixed
 - [x] cwd-independent boot (#208): boot tests resolve `server.js` via
   `import.meta.url`, so the suite is green from any cwd

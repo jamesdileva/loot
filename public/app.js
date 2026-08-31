@@ -336,8 +336,8 @@ function startEdit(li, state, titleEl) {
 }
 
 async function render() {
-  list.replaceChildren();
   const tasks = await api("/api/tasks");
+  list.replaceChildren();
   const visible = applyView(tasks, { query: currentQuery, status: currentStatus, due: currentDue, today: todayIso() });
   empty.hidden = true;
   noFilterMatch.hidden = true;

@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased (v1.16)
+
+### Fixed
+
+- `render()` no longer clears the task list before awaiting `GET /api/tasks`.
+  Overlapping `render()` calls (e.g. loading the page while a status/due change
+  lands, two quick filter changes, or a full render racing a debounced one)
+  previously accumulated rows — each call cleared first, then appended its own
+  copy, so the list could show duplicates. Clearing after the fetch keeps every
+  render a full replace, so concurrent renders converge instead of stacking.
+
+### Added
+
+- Minimal DOM harness (`test/dom.js`) + loader hook (`test/loader-hooks.js`):
+  a zero-dep fake DOM (`getElementById`, `createElement`, classList, attribute
+  handling, event dispatch) plus an absolute-specifier resolver so the real
+  `public/app.js` can be imported in-process and driven headlessly.
+  `test/app.dom.test.js` wires fake `fetch`/store and exercises the full app:
+  boot render + first-row pre-selection, empty state, optimistic-append add,
+  debounced search narrowing, filtered-append (query / status=done / due=overdue
+  full render paths), the no-filter-match placeholder, and selection
+  re-clamping — the addTask/filter wiring previously only unit-tested in
+  pieces, and the render race above, end-to-end. 8 new tests, 178/178 green.
+
 ## Unreleased (v1.15)
 
 ### Fixed
