@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased (v1.14)
+
+### Features
+
+- Debounced live search (D#970, endorsed D#975): the search box no longer fires
+  a full render round-trip (fetch `/api/tasks` + DOM rebuild) on every
+  keystroke. `public/debounce.js` adds a pure, zero-dep
+  `createDebouncer(fn, {delay, setTimeout, clearTimeout})` with
+  `schedule`/`flush`/`cancel`; `app.js` uses a 300ms debounce on the existing
+  search-input `input` handler. Clearing the search box flushes promptly so no
+  old result lingers, and add / delete / import cancel any pending debounced
+  render so the list never re-renders with stale state. Timer functions are
+  injected, so the 10 new tests in `test/debounce.test.js` drive a fake clock
+  deterministically (no real waits, no flake) — the debouncer contract that the
+  DOM wiring depends on (rapid schedules collapse, flush runs now, cancel
+  drops) is what those tests pin down.
+
 ## Unreleased (v1.13)
 
 ### Removed

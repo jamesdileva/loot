@@ -40,6 +40,7 @@ Configuration is via environment variables:
 | `public/filter.js`      | Pure view: `isOverdue(task, today)` and `applyView(tasks, {query, status, due, today})` combining text + status + due with AND semantics |
 | `public/nav.js`         | Pure keyboard nav: `nextSelection(move, index, count)`, `shortcutAction(key)` |
 | `public/render.js`      | Pure render policy: `selectionForRender(prev, count)` (pre-selects first row on load) and `rowModel(task, index, count, today)` |
+| `public/debounce.js`    | Pure debounce: `createDebouncer(fn, {delay, setTimeout, clearTimeout})` → `{schedule, flush, cancel}`; timers injectable for deterministic tests |
 | `transfer.js`           | Pure export/import: `exportStore(data)`, `parseImport(value)` |
 | `public/`               | Static front-end assets                                     |
 | `test/`                 | Node test-runner tests                                      |
@@ -64,6 +65,11 @@ has a due date, is not done, and the due date is strictly before `today`), and
 `applyView(tasks, {query, status, due, today})` implements the combined filter
 without mutating the input. The text-search match mirrors `search.js`
 (`title`+`notes`, case-insensitive).
+
+The text search is debounced (300ms) so a full render round-trip is not fired
+on every keystroke. Clearing the search box renders the full list immediately,
+and add / delete / import cancel any pending debounced render so the list never
+goes stale.
 
 ## HTTP API
 

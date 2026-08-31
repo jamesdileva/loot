@@ -3,6 +3,7 @@ import { shouldStartDrag } from "/drag.js";
 import { applyView, isOverdue, VIEW_ALL, DUE_ALL } from "/filter.js";
 import { nextSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
 import { selectionForRender, rowModel } from "/render.js";
+import { createDebouncer } from "/debounce.js";
 
 const list = document.getElementById("task-list");
 const empty = document.getElementById("empty");
@@ -369,6 +370,12 @@ function syncSelectionUI() {
   }
 }
 
+function renderNow() {
+  render().catch((err) => setStatus(err.message, true));
+}
+
+const renderDebounced = createDebouncer(renderNow, { delay: 300 });
+
 function moveSelection(action) {
   const count = list.childElementCount;
   if (count === 0) return;
@@ -396,6 +403,7 @@ list.addEventListener("keydown", (e) => {
 });
 
 async function addTask(title) {
+  renderDebounced.cancel();
   const task = await api("/api/tasks", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -409,6 +417,7 @@ async function addTask(title) {
 }
 
 async function removeTask(id) {
+  renderDebounced.cancel();
   try {
     await api(`/api/tasks/${id}`, { method: "DELETE" });
     const el = list.querySelector(`[data-id="${id}"]`);
@@ -440,7 +449,11 @@ form.addEventListener("submit", async (e) => {
 
 searchInput.addEventListener("input", () => {
   currentQuery = searchInput.value;
-  render().catch((err) => setStatus(err.message, true));
+  if (currentQuery.trim() === "") {
+    if (!renderDebounced.flush()) renderNow();
+  } else {
+    renderDebounced.schedule();
+  }
 });
 
 const statusSelect = document.getElementById("status-select");
@@ -481,6 +494,7 @@ importFile.addEventListener("change", async () => {
   const file = importFile.files[0];
   importFile.value = "";
   if (!file) return;
+  renderDebounced.cancel();
   try {
     const result = await api("/api/import", {
       method: "POST",
