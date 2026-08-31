@@ -134,6 +134,15 @@ const submitAdd = (title) => {
   input.value = title;
   fire(byId("add-form"), "submit", { preventDefault() {} });
 };
+const pointer = (o) => ({ preventDefault() {}, ...o });
+const box = (top, height = 50) => ({
+  top,
+  left: 0,
+  right: 200,
+  bottom: top + height,
+  height,
+  width: 200,
+});
 
 async function resetView(seed, expected) {
   store.reset(seed);
@@ -320,4 +329,133 @@ test("stale render that resolves after a newer one does not wipe the newer rows"
     for (const g of gates) g();
     globalThis.fetch = realFetch;
   }
+});
+
+test("drag reorder: pointer drag inserts before the hovered row and persists over /order", async () => {
+  await resetView([
+    { id: 30, title: "Alpha" },
+    { id: 31, title: "Beta" },
+    { id: 32, title: "Gamma" },
+  ], 3);
+  const [alpha, beta] = list.children;
+  document.elementFromPoint = () => alpha;
+  alpha.getBoundingClientRect = () => box(100, 50);
+
+  fire(beta, "pointerdown", pointer({ pointerId: 7, clientX: 10, clientY: 10 }));
+  fire(beta, "pointermove", pointer({ pointerId: 7, clientX: 12, clientY: 14 }));
+  assert.equal(beta.classList.contains("dragging"), false, "jitter below the 5px threshold is not a drag");
+  assert.deepEqual(titles(), ["Alpha", "Beta", "Gamma"]);
+
+  fire(beta, "pointermove", pointer({ pointerId: 7, clientX: 12, clientY: 25 }));
+  assert.equal(beta.classList.contains("dragging"), true, "movement past the threshold activates the drag");
+  assert.deepEqual(titles(), ["Beta", "Alpha", "Gamma"], "the dragged row jumps before the hovered one");
+
+  fire(beta, "pointerup", pointer({ pointerId: 7, clientX: 12, clientY: 25 }));
+  assert.equal(beta.listenerCount("pointermove"), 0, "pointerup detaches pointermove");
+  assert.equal(beta.listenerCount("pointerup"), 0, "pointerup detaches itself");
+  assert.equal(beta.listenerCount("pointercancel"), 0, "pointerup detaches pointercancel");
+  assert.equal(beta.classList.contains("dragging"), false);
+  assert.ok(await waitFor(() => byId("status").textContent === "Task moved"));
+  await settle();
+  assert.deepEqual(titles(), ["Beta", "Alpha", "Gamma"]);
+  assert.deepEqual(store.list().map((t) => t.title), ["Beta", "Alpha", "Gamma"]);
+});
+
+test("drag tap: pointerdown/up without movement never persists a reorder", async () => {
+  await resetView([
+    { id: 33, title: "Alpha" },
+    { id: 34, title: "Beta" },
+    { id: 35, title: "Gamma" },
+  ], 3);
+  const beta = list.children[1];
+  document.elementFromPoint = () => beta;
+
+  fire(beta, "pointerdown", pointer({ pointerId: 8, clientX: 50, clientY: 50 }));
+  fire(beta, "pointerup", pointer({ pointerId: 8, clientX: 50, clientY: 50 }));
+  await settle();
+  assert.equal(beta.listenerCount("pointermove"), 0);
+  assert.equal(byId("status").textContent, "");
+  assert.deepEqual(titles(), ["Alpha", "Beta", "Gamma"]);
+  assert.deepEqual(store.list().map((t) => t.title), ["Alpha", "Beta", "Gamma"]);
+});
+
+test("drag ignores interactive targets: pointerdown on a button does not start a drag", async () => {
+  await resetView([
+    { id: 36, title: "Alpha" },
+    { id: 37, title: "Beta" },
+  ], 2);
+  const beta = list.children[1];
+  const downBtn = beta.querySelector(".down");
+  document.elementFromPoint = () => beta;
+  downBtn.getBoundingClientRect = () => box(100, 50);
+
+  fire(beta, "pointerdown", pointer({ target: downBtn, pointerId: 9, clientX: 10, clientY: 10 }));
+  fire(beta, "pointermove", pointer({ pointerId: 9, clientX: 100, clientY: 100 }));
+  assert.equal(beta.classList.contains("dragging"), false);
+  assert.equal(beta.listenerCount("pointermove"), 0);
+  assert.deepEqual(titles(), ["Alpha", "Beta"]);
+});
+
+test("drag cancel: pointercancel detaches all drag listeners and never persists", async () => {
+  await resetView([
+    { id: 38, title: "Alpha" },
+    { id: 39, title: "Beta" },
+    { id: 40, title: "Gamma" },
+  ], 3);
+  const beta = list.children[1];
+  const gamma = list.children[2];
+  document.elementFromPoint = () => gamma;
+  gamma.getBoundingClientRect = () => box(100, 50);
+
+  fire(beta, "pointerdown", pointer({ pointerId: 10, clientX: 100, clientY: 100 }));
+  fire(beta, "pointermove", pointer({ pointerId: 10, clientX: 100, clientY: 130 }));
+  assert.equal(beta.classList.contains("dragging"), true);
+  assert.deepEqual(titles(), ["Alpha", "Gamma", "Beta"], "dropped visually after the hovered row");
+
+  fire(beta, "pointercancel", pointer({ pointerId: 10 }));
+  assert.equal(beta.classList.contains("dragging"), false);
+  assert.equal(beta.listenerCount("pointermove"), 0, "cancel detaches pointermove");
+  assert.equal(beta.listenerCount("pointerup"), 0, "cancel detaches pointerup");
+  assert.equal(beta.listenerCount("pointercancel"), 0, "cancel detaches itself");
+
+  fire(beta, "pointerup", pointer({ pointerId: 10 }));
+  await settle();
+  assert.equal(byId("status").textContent, "", "a late pointerup after cancel persists nothing");
+  assert.deepEqual(titles(), ["Alpha", "Gamma", "Beta"], "no re-render, no store change");
+  assert.deepEqual(store.list().map((t) => t.title), ["Alpha", "Beta", "Gamma"]);
+});
+
+test("select change with a bogus value normalizes to 'all' and renders without shifting rows", async () => {
+  await resetView([
+    { id: 41, title: "Open task", done: false },
+    { id: 42, title: "Done task", done: true },
+    { id: 43, title: "Dated task", done: false, due: "2020-01-01" },
+  ], 3);
+  const statusSelect = byId("status-select");
+  const dueSelect = byId("due-select");
+
+  statusSelect.value = "bogus";
+  fire(statusSelect, "change", { target: statusSelect });
+  await settle();
+  assert.deepEqual(titles(), ["Open task", "Done task", "Dated task"], "bogus status falls back to all");
+
+  dueSelect.value = "junk";
+  fire(dueSelect, "change", { target: dueSelect });
+  await settle();
+  assert.deepEqual(titles(), ["Open task", "Done task", "Dated task"], "bogus due falls back to all");
+  assert.equal(byId("status").textContent, "");
+
+  statusSelect.value = "done";
+  fire(statusSelect, "change", { target: statusSelect });
+  assert.ok(await waitFor(() => list.childElementCount === 1));
+  assert.deepEqual(titles(), ["Done task"], "a valid filter still works after bogus dispatch");
+
+  statusSelect.value = "all";
+  fire(statusSelect, "change", { target: statusSelect });
+  await settle();
+
+  dueSelect.value = "dated";
+  fire(dueSelect, "change", { target: dueSelect });
+  assert.ok(await waitFor(() => list.childElementCount === 1));
+  assert.deepEqual(titles(), ["Dated task"], "due filtering survives the normalize wiring");
 });

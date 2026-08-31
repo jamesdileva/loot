@@ -115,7 +115,12 @@ function makeElement(tag) {
       el._pp = null;
     },
     insertBefore(node, ref) {
-      if (node._pp === el) return;
+      if (node._pp) {
+        const arr = node._pp === el ? kids : node._pp.children;
+        const at = arr.indexOf(node);
+        if (at >= 0) arr.splice(at, 1);
+        node._pp = null;
+      }
       node._pp = el;
       if (!ref) {
         kids.push(node);
@@ -140,6 +145,9 @@ function makeElement(tag) {
     },
     removeEventListener(type, fn) {
       handlers.get(type)?.delete(fn);
+    },
+    listenerCount(type) {
+      return handlers.get(type)?.size || 0;
     },
     dispatch(type, event = {}) {
       const ev = { target: el, ...event };

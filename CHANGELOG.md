@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased (v1.19)
+
+### Added
+
+- Full DOM coverage for the drag-reorder branch (`app.js` `onPointerDown` /
+  `onPointerMove` / `onPointerUp` / `onPointerCancel`): `test/app.dom.test.js`
+  now drives a real pointer sequence — jitter below the 5px threshold does not
+  start a drag, movement past the threshold marks the row `dragging`,
+  `document.elementFromPoint` + `getBoundingClientRect` fakes insert the dragged
+  row before the hovered one, and `pointerup` persists the new index over
+  `PUT /api/tasks/:id/order` and re-renders. Companion tests pin that a bare
+  tap never persists, pointerdown on a button is ignored (`dragIgnoredTarget`),
+  and a `pointercancel` fully detaches the drag listeners instead of leaving
+  them attached to the row.
+- The fake DOM (`test/dom.js`) now mirrors real `insertBefore` semantics (an
+  existing child is moved, not silently skipped) and exposes `listenerCount()`
+  so the drag tests can assert listener-cleanup directly.
+- `test/app.dom.test.js` dispatches `change` with a bogus `status-select` /
+  `due-select` value and asserts the app normalizes to the `all` view without
+  crashing or shifting rows, then that valid filters still work afterwards —
+  exercising the `normalizeStatus`/`normalizeDue` source wiring in the UI.
+
+### Fixed
+
+- `onPointerCancel` in `public/app.js` now removes the `pointermove`,
+  `pointerup`, and `pointercancel` listeners when a drag is cancelled,
+  mirroring the `pointerup` cleanup. Previously a cancelled drag left all three
+  listeners attached to the row for its lifetime (after `render()` rebuilds the
+  list the whole subtree is discarded, so the leak was bounded, but the row
+  kept dead-notifying handlers in the meantime).
+
 ## Unreleased (v1.18)
 
 ### Added

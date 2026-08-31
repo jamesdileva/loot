@@ -290,8 +290,12 @@ async function onPointerUp(e) {
 
 function onPointerCancel(e) {
   if (!dragging || e.pointerId !== dragging.pointerId) return;
-  dragging.li.classList.remove("dragging");
+  const { li } = dragging;
   dragging = null;
+  li.classList.remove("dragging");
+  li.removeEventListener("pointermove", onPointerMove);
+  li.removeEventListener("pointerup", onPointerUp);
+  li.removeEventListener("pointercancel", onPointerCancel);
 }
 
 function startEdit(li, state, titleEl) {
