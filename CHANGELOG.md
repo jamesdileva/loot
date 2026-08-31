@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased (v1.8)
+
+### Test infrastructure
+
+- cwd-independent boot (#208): every test file that boots the server resolves
+  `server.js` via `import.meta.url` (never the process cwd) and spawns it with
+  `process.execPath`. The suite now runs green (130/130) from the repo cwd *and*
+  from an arbitrary foreign cwd, eliminating the `FAIL(0.0s)` decoherence where
+  a mis-configured cwd silently launched zero tests.
+
 ## Unreleased (v1.7)
 
 ### Test infrastructure

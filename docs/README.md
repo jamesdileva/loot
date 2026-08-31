@@ -108,6 +108,11 @@ npm test
 Runs the `node --test` suite covering the store, the HTTP API (including
 error paths), and the static-file smoke path. All offline, no network.
 
+`test/verify.js` discovers the suite by absolute path and runs it through the
+`node:test` runner; if 0 tests execute it fails with an explicit message (`#208`).
+Boot tests resolve `server.js` via `import.meta.url`, so `npm test` passes from
+any working directory — it is not cwd-sensitive.
+
 ## Export and import
 
 `GET /api/export` returns the whole store as `{"tasks": [...]}` in **persisted
@@ -163,3 +168,10 @@ Scoped v1 todos and known deferred items:
 - [x] JSON export/import (D#600): strict validation, atomic `.pre-import` backup, UI buttons
 - [x] Status filter (All/Open/Done) + due view (Overdue / Has due date sorted
   soonest-first) from a pure client module (D#648)
+- [x] Syntax guard (#176): `node --check` over all repo JS, fail fast
+- [x] E2E smoke slice (#189): boot server on ephemeral port, assert 200, verify
+  storage isolation
+- [x] `tests>0` guard (#208): `npm test` runs through `test/verify.js` and fails
+  loudly if 0 tests execute
+- [x] cwd-independent boot (#208): boot tests resolve `server.js` via
+  `import.meta.url`, so the suite is green from any cwd
