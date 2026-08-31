@@ -20,22 +20,40 @@ before(async () => {
     stdio: ["ignore", "ignore", "pipe", "ipc"],
   });
   child.stderr.pipe(errStream);
-  const outcome = await Promise.race([
-    new Promise((resolve) => child.on("message", (msg) => { if (msg && msg.ready) port = msg.port; resolve(msg && msg.ready ? "ready" : null); })),
-    new Promise((resolve) => child.once("exit", (code, sig) => resolve(`exit:${code}:${sig}`))),
-    new Promise((resolve) => child.once("error", (e) => resolve(`error:${e.message}`))),
-  ]);
+  const bootTimeout = new Promise((_, reject) => {
+    const t = setTimeout(() => reject(new Error("boot timeout after 10s")), 10_000);
+    t.unref();
+  });
+  let outcome;
+  try {
+    outcome = await Promise.race([
+      new Promise((resolve) => child.on("message", (msg) => { if (msg && msg.ready) port = msg.port; resolve(msg && msg.ready ? "ready" : null); })),
+      new Promise((resolve) => child.once("exit", (code, sig) => resolve(`exit:${code}:${sig}`))),
+      new Promise((resolve) => child.once("error", (e) => resolve(`error:${e.message}`))),
+      bootTimeout,
+    ]);
+  } catch (e) {
+    outcome = e.message;
+  }
   if (outcome !== "ready") {
     await new Promise((r) => setTimeout(r, 500));
     errStream.end();
-    const log = await readFile(errFile, "utf8");
+    const log = await readFile(errFile, "utf8").catch(() => "");
     throw new Error(`server not ready (${outcome}). stderr:\n${log}`);
   }
 });
 
 after(async () => {
-  child.kill();
-  await rm(dir, { recursive: true, force: true });
+  if (child) {
+    const exited = new Promise((resolve) => child.once("exit", resolve));
+    child.kill();
+    const killTimeout = new Promise((_, reject) => {
+      const t = setTimeout(() => reject(new Error("child did not exit in 10s")), 10_000);
+      t.unref();
+    });
+    await Promise.race([exited, killTimeout]).catch(() => {});
+  }
+  await rm(dir, { recursive: true, force: true }).catch(() => {});
 });
 
 test("GET / returns the Loot task list page", async () => {
@@ -84,12 +102,12 @@ test("storage is isolated to DATA_FILE, not the default workspace data path", as
   assert.ok(stored.tasks.some((t) => t.title === "isolated-write"));
 
   const prodPath = new URL("../data/data.json", import.meta.url);
-  const hasProd = await readFile(prodPath, "utf8").then(
-    () => true,
-    () => false
-  );
+  const beforeBytes = await readFile(prodPath, "utf8").catch(() => null);
+  const hasProd = beforeBytes !== null;
   if (hasProd) {
-    const prod = JSON.parse(await readFile(prodPath, "utf8"));
+    const prod = JSON.parse(beforeBytes);
     assert.ok(!prod.tasks.some((t) => t.title === "isolated-write"));
   }
+  const afterBytes = await readFile(prodPath, "utf8").catch(() => null);
+  assert.equal(afterBytes, beforeBytes);
 });
