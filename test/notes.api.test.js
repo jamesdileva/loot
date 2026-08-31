@@ -4,7 +4,8 @@ import { spawn } from "node:child_process";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 let child;
 let port;
@@ -13,8 +14,9 @@ let dir;
 before(async () => {
   dir = await mkdtemp(join(tmpdir(), "loot-notes-"));
   const errFile = join(dir, "child.err.log");
-  const errStream = createWriteStream(errFile);
-  child = spawn(process.execPath, ["server.js"], {
+const errStream = createWriteStream(errFile);
+const SERVER = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+child = spawn(process.execPath, [join(SERVER, "server.js")], {
     env: { ...process.env, PORT: "0", DATA_FILE: join(dir, "data.json") },
     stdio: ["ignore", "ignore", "pipe", "ipc"],
   });
