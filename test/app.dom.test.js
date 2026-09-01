@@ -521,3 +521,29 @@ test("drag-under-filter: dropping onto a visible neighbor persists the raw index
   assert.deepEqual(store.list().map((t) => t.title), ["Alpha", "Delta", "Beta", "Gamma"],
     "Delta persisted into the raw slot before Beta, not to visible index 0 of the raw array");
 });
+
+test("drag-under-filter: dropping into the filtered view's empty tail is a no-op and never desyncs the raw order", async () => {
+  await resetView([
+    { id: 70, title: "Alpha", done: false },
+    { id: 71, title: "Beta", done: true },
+    { id: 72, title: "Gamma", done: false },
+    { id: 73, title: "Delta", done: true },
+  ], 4);
+  selectValue("status-select", "done");
+  assert.ok(await waitFor(() => list.childElementCount === 2));
+  const [beta, delta] = list.children;
+  assert.deepEqual(titles(), ["Beta", "Delta"]);
+
+  document.elementFromPoint = () => null;
+
+  fire(delta, "pointerdown", pointer({ pointerId: 12, clientX: 10, clientY: 10 }));
+  fire(delta, "pointermove", pointer({ pointerId: 12, clientX: 12, clientY: 80 }));
+  assert.equal(delta.classList.contains("dragging"), true, "drag past the threshold is active");
+  fire(delta, "pointerup", pointer({ pointerId: 12, clientX: 12, clientY: 80 }));
+
+  await settle();
+  assert.equal(byId("status").textContent, "", "an empty-space drop under a filter persists no reorder status");
+  assert.deepEqual(titles(), ["Beta", "Delta"], "visible rows restored after the no-op");
+  assert.deepEqual(store.list().map((t) => t.title), ["Alpha", "Beta", "Gamma", "Delta"],
+    "raw order untouched: dropping into empty space under a filter must not desync");
+});

@@ -283,7 +283,13 @@ async function onPointerUp(e) {
   li.removeEventListener("pointercancel", onPointerCancel);
   if (!active) return;
   const newIndex = Array.prototype.indexOf.call(list.children, li);
-  if (newIndex === startIndex || reordering) return;
+  if (reordering) return;
+  const filtered = viewIsFiltered({ query: currentQuery, status: currentStatus, due: currentDue });
+  if (!targetId && filtered) {
+    await render();
+    return;
+  }
+  if (newIndex === startIndex) return;
   const toIndex = targetId ? rawMoveIndex(rawOrder, id, targetId) : newIndex;
   reordering = true;
   try {
