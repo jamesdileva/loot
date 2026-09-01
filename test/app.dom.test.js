@@ -459,3 +459,65 @@ test("select change with a bogus value normalizes to 'all' and renders without s
   assert.ok(await waitFor(() => list.childElementCount === 1));
   assert.deepEqual(titles(), ["Dated task"], "due filtering survives the normalize wiring");
 });
+
+test("move-under-filter: the move button maps the visible neighbor to the raw store index", async () => {
+  await resetView([
+    { id: 50, title: "Alpha", done: false },
+    { id: 51, title: "Beta", done: true },
+    { id: 52, title: "Gamma", done: false },
+    { id: 53, title: "Delta", done: true },
+  ], 4);
+  selectValue("status-select", "done");
+  assert.ok(await waitFor(() => list.childElementCount === 2));
+  assert.deepEqual(titles(), ["Beta", "Delta"]);
+
+  list.children[1].querySelector(".up").click();
+  assert.ok(await waitFor(() => byId("status").textContent === "Task moved" && titles().join("|") === "Delta|Beta"));
+  assert.deepEqual(store.list().map((t) => t.title), ["Alpha", "Delta", "Beta", "Gamma"],
+    "Delta moves into the raw slot before Beta, not to visible index 1");
+});
+
+test("move-under-filter: moving down writes the raw index after the visible neighbor", async () => {
+  await resetView([
+    { id: 54, title: "Alpha", done: false },
+    { id: 55, title: "Beta", done: true },
+    { id: 56, title: "Gamma", done: false },
+    { id: 57, title: "Delta", done: true },
+  ], 4);
+  selectValue("status-select", "done");
+  assert.ok(await waitFor(() => list.childElementCount === 2));
+  assert.deepEqual(titles(), ["Beta", "Delta"]);
+
+  list.children[0].querySelector(".down").click();
+  assert.ok(await waitFor(() => byId("status").textContent === "Task moved" && titles().join("|") === "Delta|Beta"));
+  assert.deepEqual(store.list().map((t) => t.title), ["Alpha", "Gamma", "Delta", "Beta"],
+    "Beta moves down into the raw slot after Delta, past the hidden Gamma");
+});
+
+test("drag-under-filter: dropping onto a visible neighbor persists the raw index, not the visible one", async () => {
+  await resetView([
+    { id: 60, title: "Alpha", done: false },
+    { id: 61, title: "Beta", done: true },
+    { id: 62, title: "Gamma", done: false },
+    { id: 63, title: "Delta", done: true },
+  ], 4);
+  selectValue("status-select", "done");
+  assert.ok(await waitFor(() => list.childElementCount === 2));
+  const [beta, delta] = list.children;
+  assert.deepEqual(titles(), ["Beta", "Delta"]);
+
+  document.elementFromPoint = () => beta;
+  beta.getBoundingClientRect = () => box(100, 50);
+
+  fire(delta, "pointerdown", pointer({ pointerId: 11, clientX: 10, clientY: 10 }));
+  fire(delta, "pointermove", pointer({ pointerId: 11, clientX: 12, clientY: 25 }));
+  assert.equal(delta.classList.contains("dragging"), true);
+  assert.deepEqual(titles(), ["Delta", "Beta"], "dropped visibly before Beta");
+
+  fire(delta, "pointerup", pointer({ pointerId: 11, clientX: 12, clientY: 25 }));
+  assert.ok(await waitFor(() => byId("status").textContent === "Task moved"));
+  await settle();
+  assert.deepEqual(titles(), ["Delta", "Beta"]);
+  assert.deepEqual(store.list().map((t) => t.title), ["Alpha", "Delta", "Beta", "Gamma"],
+    "Delta persisted into the raw slot before Beta, not to visible index 0 of the raw array");
+});

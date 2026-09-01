@@ -3,6 +3,7 @@ import { shouldStartDrag } from "/drag.js";
 import { applyView, isOverdue, viewIsFiltered, normalizeStatus, normalizeDue, VIEW_ALL, DUE_ALL } from "/filter.js";
 import { nextSelection, shortcutAction, ACTION_MOVE_UP, ACTION_MOVE_DOWN, ACTION_TOGGLE_DONE } from "/nav.js";
 import { selectionForRender, rowModel } from "/render.js";
+import { rawMoveIndex } from "/reorder.js";
 import { createDebouncer } from "/debounce.js";
 
 const list = document.getElementById("task-list");
@@ -19,6 +20,7 @@ let currentQuery = "";
 let currentStatus = VIEW_ALL;
 let currentDue = DUE_ALL;
 let selectedIndex = null;
+const rawOrder = [];
 
 function todayIso() {
   const d = new Date();
@@ -86,14 +88,14 @@ function makeTaskElement(task, index, count) {
   upBtn.textContent = "↑";
   upBtn.setAttribute("aria-label", "Move up");
   upBtn.disabled = model.moveUpDisabled;
-  upBtn.addEventListener("click", () => moveTask(state.id, index - 1, upBtn));
+  upBtn.addEventListener("click", () => moveTask(state.id, upBtn, "up"));
 
   const downBtn = document.createElement("button");
   downBtn.className = "move down";
   downBtn.textContent = "↓";
   downBtn.setAttribute("aria-label", "Move down");
   downBtn.disabled = model.moveDownDisabled;
-  downBtn.addEventListener("click", () => moveTask(state.id, index + 1, downBtn));
+  downBtn.addEventListener("click", () => moveTask(state.id, downBtn, "down"));
 
   const editBtn = document.createElement("button");
   editBtn.textContent = "Edit";
@@ -209,10 +211,15 @@ async function reorderTask(id, toIndex) {
   });
 }
 
-async function moveTask(id, toIndex, btn) {
+async function moveTask(id, btn, direction) {
   if (reordering) return;
+  const rowIndex = Array.prototype.indexOf.call(list.children, btn.closest("li"));
+  const sibling = direction === "up" ? list.children[rowIndex - 1] : list.children[rowIndex + 1];
+  if (!sibling) return;
+  const neighborId = sibling.dataset.id;
+  const toIndex = rawMoveIndex(rawOrder, id, neighborId);
   reordering = true;
-  if (btn) btn.disabled = true;
+  btn.disabled = true;
   try {
     await reorderTask(id, toIndex);
     await render();
@@ -257,15 +264,17 @@ function onPointerMove(e) {
   const over = document.elementFromPoint(e.clientX, e.clientY);
   const other = over && over.closest ? over.closest(".task") : null;
   if (!other || other === li) return;
+  dragging.targetId = other.dataset.id;
   const rect = other.getBoundingClientRect();
   const placeBefore = e.clientY < rect.top + rect.height / 2;
+  dragging.placeBefore = placeBefore;
   if (placeBefore) list.insertBefore(li, other);
   else list.insertBefore(li, other.nextSibling);
 }
 
 async function onPointerUp(e) {
   if (!dragging || e.pointerId !== dragging.pointerId) return;
-  const { id, li, active } = dragging;
+  const { id, li, active, targetId } = dragging;
   const startIndex = dragging.startIndex;
   dragging = null;
   li.classList.remove("dragging");
@@ -273,11 +282,12 @@ async function onPointerUp(e) {
   li.removeEventListener("pointerup", onPointerUp);
   li.removeEventListener("pointercancel", onPointerCancel);
   if (!active) return;
-  const newIndex = taskIndex(li);
+  const newIndex = Array.prototype.indexOf.call(list.children, li);
   if (newIndex === startIndex || reordering) return;
+  const toIndex = targetId ? rawMoveIndex(rawOrder, id, targetId) : newIndex;
   reordering = true;
   try {
-    await reorderTask(id, newIndex);
+    await reorderTask(id, toIndex);
     await render();
     setStatus("Task moved");
   } catch (err) {
@@ -345,6 +355,8 @@ async function render() {
   const seq = ++renderSeq;
   const tasks = await api("/api/tasks");
   if (seq !== renderSeq) return;
+  rawOrder.length = 0;
+  for (const t of tasks) rawOrder.push(String(t.id));
   list.replaceChildren();
   const visible = applyView(tasks, { query: currentQuery, status: currentStatus, due: currentDue, today: todayIso() });
   empty.hidden = true;
@@ -425,6 +437,7 @@ async function addTask(title) {
   const prevCount = list.childElementCount;
   empty.hidden = true;
   list.append(makeTaskElement(task, prevCount, prevCount + 1));
+  rawOrder.push(String(task.id));
   selectedIndex = selectionForRender(selectedIndex, list.childElementCount);
   syncSelectionUI();
   setStatus("Task added");
@@ -436,6 +449,8 @@ async function removeTask(id) {
     await api(`/api/tasks/${id}`, { method: "DELETE" });
     const el = list.querySelector(`[data-id="${id}"]`);
     if (el) el.remove();
+    const rawIdx = rawOrder.indexOf(String(id));
+    if (rawIdx !== -1) rawOrder.splice(rawIdx, 1);
     if (list.childElementCount === 0) empty.hidden = false;
     selectedIndex = selectionForRender(selectedIndex, list.childElementCount);
     syncSelectionUI();
