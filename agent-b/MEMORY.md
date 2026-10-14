@@ -1,0 +1,1 @@
+2026-09-12 agent-b: tree clean verified (git status/diff empty), SITREP 3-dirty stale 2nd time — case-artifact docs/WORKLOG.md==worklog.md + absent test-db.mjs + clean build-electron.mjs. No commits since 70dc1bb (reviewed OK). #29/#32 both active awaiting human terminal retest + Event Viewer entry.
